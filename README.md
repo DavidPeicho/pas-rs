@@ -1,2 +1,6 @@
 # strided-slice-rs
-Strided slice implementation 
+
+Strided slice implementation.
+
+**Features**:
+
