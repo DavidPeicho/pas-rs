@@ -1,3 +1,6 @@
+use bytemuck::Pod;
+use std::marker::PhantomData;
+
 /// Mutable slice
 ///
 /// # Important Notes
@@ -27,7 +30,16 @@ impl<'a, T: Pod> SliceMut<'a, T> {
         Self::from_slice_offset(data, 0)
     }
 
-    pub fn get(&mut self, index: usize) -> Option<&mut T> {
+    pub fn get(&self, index: usize) -> Option<&T> {
+        if index >= self.len() {
+            return None;
+        }
+        let start = self.stride * index;
+        let ptr = self.data.as_ptr();
+        Some(unsafe { std::mem::transmute::<_, &T>(ptr.offset(start as isize)) })
+    }
+
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
         if index >= self.len() {
             return None;
         }
@@ -92,7 +104,7 @@ where
     T: Pod,
 {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        self.get(index).expect("index ouf of bounds")
+        self.get_mut(index).expect("index ouf of bounds")
     }
 }
 
@@ -118,10 +130,10 @@ impl<'a, T: Pod> SliceMutIterator<'a, T> {
     }
 }
 
-impl<'a, T: Pod> Iterator for Slice<'a, T> {
-    type Item = T;
+impl<'a, T: Pod> Iterator for SliceMutIterator<'a, T> {
+    type Item = &'a mut T;
 
-    fn next(&mut self) -> Option<&T> {
+    fn next(&mut self) -> Option<&'a mut T> {
         let offset = self.index * self.stride;
         if offset >= self.data.len() {
             return None;
@@ -187,8 +199,8 @@ mod tests {
     #[test]
     fn mutable_iter() {
         let mut vertices = data();
+        let mut slice: SliceMut<[f32; 3]> = SliceMut::from_slice_offset(&mut vertices, 0);
         {
-            let mut slice: SliceMut<[f32; 3]> = SliceMut::from_slice_offset(&mut vertices, 0);
             let mut iter = slice.iter();
             assert_eq!(*iter.next().unwrap(), [1.0, -1.0, 1.0]);
             assert_eq!(*iter.next().unwrap(), [-1.0, 1.0, 0.0]);
