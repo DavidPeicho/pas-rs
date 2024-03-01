@@ -55,15 +55,17 @@ impl<'a, T: Pod> Slice<'a, T> {
     }
 
     pub fn get(&self, index: usize) -> Option<&'a T> {
-        if let Some(ptr) = self.inner.get(index) {
-            Some(unsafe { std::mem::transmute::<_, &T>(ptr) })
-        } else {
-            None
-        }
+        self.inner
+            .get(index)
+            .map(|ptr| unsafe { std::mem::transmute::<_, &T>(ptr) })
     }
 
     pub fn len(&self) -> usize {
         self.inner.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.inner.is_empty()
     }
 
     pub fn iter(&'a self) -> SliceIterator<'a, T> {

@@ -38,19 +38,15 @@ impl<'a, T: Pod> SliceMut<'a, T> {
     }
 
     pub fn get(&self, index: usize) -> Option<&'a T> {
-        if let Some(ptr) = self.inner.get(index) {
-            Some(unsafe { std::mem::transmute::<_, &T>(ptr) })
-        } else {
-            None
-        }
+        self.inner
+            .get(index)
+            .map(|ptr| unsafe { std::mem::transmute::<_, &T>(ptr) })
     }
 
     pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
-        if let Some(ptr) = self.inner.get(index) {
-            Some(unsafe { std::mem::transmute::<_, &mut T>(ptr) })
-        } else {
-            None
-        }
+        self.inner
+            .get(index)
+            .map(|ptr| unsafe { std::mem::transmute::<_, &mut T>(ptr) })
     }
 
     pub fn copy_from_slice<V: Pod>(&self, other_data: &[V]) {
@@ -75,7 +71,7 @@ impl<'a, T: Pod> SliceMut<'a, T> {
         let bytes: &[u8] = bytemuck::cast_slice(other_data);
         for i in 0..other_count {
             let ptr = self.inner.get(i).unwrap() as *mut u8;
-            let other_ptr = unsafe { bytes.as_ptr().offset((i * other_stride) as isize) };
+            let other_ptr = unsafe { bytes.as_ptr().add(i * other_stride) };
             unsafe {
                 ptr.copy_from_nonoverlapping(other_ptr, other_stride);
             }
@@ -84,6 +80,10 @@ impl<'a, T: Pod> SliceMut<'a, T> {
 
     pub fn len(&self) -> usize {
         self.inner.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.inner.is_empty()
     }
 
     pub fn iter(&'a self) -> SliceMutIterator<'a, T> {

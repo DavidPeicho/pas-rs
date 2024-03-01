@@ -33,14 +33,14 @@ pub struct SliceData<Attr: Sized> {
 
 impl<Attr: Sized> SliceData<Attr> {
     pub(crate) fn try_new<V: Pod>(data: &[V], offset: usize) -> Result<Self, SliceError> {
-        let ptr = data.as_ptr() as *const u8;
+        let ptr = data.as_ptr().cast::<u8>();
         let stride = std::mem::size_of::<V>();
-        let size = stride * data.len();
+        let size = std::mem::size_of_val(data);
         Self::try_raw_ptr(ptr, stride, offset, size)
     }
 
     pub(crate) fn try_raw(data: &[u8], stride: usize, offset: usize) -> Result<Self, SliceError> {
-        let ptr = data.as_ptr() as *const u8;
+        let ptr = data.as_ptr().cast::<u8>();
         Self::try_raw_ptr(ptr, stride, offset, data.len())
     }
 
@@ -60,10 +60,14 @@ impl<Attr: Sized> SliceData<Attr> {
         self.len
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
     pub fn get(&self, index: usize) -> Option<*const u8> {
         if index < self.len() {
             let start = self.stride * index;
-            Some(unsafe { self.data.offset(start as isize) })
+            Some(unsafe { self.data.add(start) })
         } else {
             None
         }
@@ -92,7 +96,7 @@ impl<Attr: Sized> SliceData<Attr> {
             Err(SliceError::SliceSizeNotMatchingStride)
         } else {
             Ok(Self {
-                data: unsafe { ptr.offset(offset as isize) },
+                data: unsafe { ptr.add(offset) },
                 len: bytes / stride,
                 stride,
                 _phantom: PhantomData,
@@ -114,7 +118,7 @@ macro_rules! impl_iterator {
                 }
                 unsafe {
                     let ret = Some(std::mem::transmute::<_, $elem>(self.start));
-                    self.start = self.start.offset(self.stride as isize);
+                    self.start = self.start.add(self.stride);
                     ret
                 }
             }
