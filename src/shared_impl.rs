@@ -25,7 +25,7 @@ impl std::fmt::Debug for SliceError {
 
 #[derive(Clone, Copy)]
 pub struct SliceData<Attr: Sized> {
-    data: *const u8,
+    pub(crate) data: *const u8,
     len: usize,
     stride: usize,
     _phantom: PhantomData<Attr>,
