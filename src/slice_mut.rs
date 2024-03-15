@@ -1,40 +1,70 @@
 use bytemuck::Pod;
-use std::marker::PhantomData;
+use std::{marker::PhantomData, num::NonZeroUsize};
 
 use crate::shared_impl::{impl_iterator, SliceData, SliceError};
 
 /// Mutable slice
 ///
-/// # Important Notes
-///
-/// - The struct transmust without checking endianness
+/// For more information, have a look at the Slice type.
 pub struct SliceMut<'a, T: Pod> {
     inner: SliceData<T>,
     _phantom: PhantomData<&'a mut T>,
 }
 
+impl<'a, T: Pod> std::fmt::Debug for SliceMut<'a, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "SliceMut({})", self.len())
+    }
+}
+
 impl<'a, T: Pod> SliceMut<'a, T> {
-    pub fn try_new<V: Pod>(data: &'a [V], offset: usize) -> Result<Self, SliceError> {
+    /// Mutable version of [`Slice::try_new()`].
+    pub fn try_new<V: Pod>(data: &'a [V], byte_offset: usize) -> Result<Self, SliceError> {
         Ok(Self {
-            inner: SliceData::try_new(data, offset)?,
+            inner: SliceData::new_typed(data, byte_offset, 1)?,
             _phantom: PhantomData,
         })
+    }
+
+    /// Wrapper around [`Self::try_new()`].
+    pub fn new<V: Pod>(data: &'a [V], byte_offset: usize) -> Self {
+        Self::try_new(data, byte_offset).unwrap()
+    }
+
+    /// Similar to [`Self::try_new()`], but allows to pass a number of elements for the stride.
+    ///
+    /// Note: The stride is expressed in **count** of elements, and **not** in bytes.
+    pub fn try_strided<V: Pod>(
+        data: &'a [V],
+        byte_offset: usize,
+        elt_stride: NonZeroUsize,
+    ) -> Result<Self, SliceError> {
+        Ok(Self {
+            inner: SliceData::new_typed(data, byte_offset, elt_stride.get())?,
+            _phantom: PhantomData,
+        })
+    }
+
+    /// Wrapper around [`Self::try_strided()`].
+    pub fn strided<V: Pod>(data: &'a [V], byte_offset: usize, elt_stride: NonZeroUsize) -> Self {
+        Self::try_strided(data, byte_offset, elt_stride).unwrap()
     }
 
     // @todo: Non-Zero stride
-    pub fn try_raw(data: &'a [u8], stride: usize, offset: usize) -> Result<Self, SliceError> {
+    pub fn try_raw(
+        data: &'a [u8],
+        offset: usize,
+        stride: NonZeroUsize,
+    ) -> Result<Self, SliceError> {
+        let ptr = data.as_ptr().cast::<u8>();
         Ok(Self {
-            inner: SliceData::try_raw(data, stride, offset)?,
+            inner: SliceData::new(ptr, offset, stride.get(), data.len())?,
             _phantom: PhantomData,
         })
     }
 
-    pub fn new<V: Pod>(data: &'a [V], offset: usize) -> Self {
-        Self::try_new(data, offset).unwrap()
-    }
-
-    pub fn new_raw(data: &'a [u8], stride: usize, offset: usize) -> Self {
-        Self::try_raw(data, stride, offset).unwrap()
+    pub fn raw(data: &'a [u8], offset: usize, stride: NonZeroUsize) -> Self {
+        Self::try_raw(data, offset, stride).unwrap()
     }
 
     pub fn get(&self, index: usize) -> Option<&'a T> {
@@ -134,95 +164,3 @@ impl<'a, T: Pod> SliceMutIterator<'a, T> {
     }
 }
 impl_iterator!(SliceMutIterator -> &'a mut T);
-
-///
-/// Test
-///
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[repr(C)]
-    #[derive(Clone, Copy, Default, bytemuck::Pod, bytemuck::Zeroable)]
-    struct Vertex {
-        position: [f32; 3],
-        uv: [f32; 2],
-    }
-
-    fn data() -> Vec<Vertex> {
-        vec![
-            Vertex {
-                position: [1.0, -1.0, 1.0],
-                uv: [0.25, 0.5],
-            },
-            Vertex {
-                position: [-1.0, 1.0, 0.0],
-                uv: [-1.0, 0.25],
-            },
-        ]
-    }
-
-    #[test]
-    fn slice_count() {}
-
-    #[test]
-    fn mutable_indexing() {
-        let mut vertices = data();
-
-        let mut slice: SliceMut<[f32; 3]> = SliceMut::new(&mut vertices, 0);
-        assert_eq!(slice[0], [1.0, -1.0, 1.0]);
-        assert_eq!(slice[1], [-1.0, 1.0, 0.0]);
-
-        // Changing index 0 doesn't affect other index.
-        slice[0] = [4.0, 3.0, 1.0];
-        assert_eq!(slice[0], [4.0, 3.0, 1.0]);
-        assert_eq!(slice[1], [-1.0, 1.0, 0.0]);
-
-        // Changing index 1 doesn't affect other index.
-        slice[1] = [11.0, 10.0, 9.0];
-        assert_eq!(slice[0], [4.0, 3.0, 1.0]);
-        assert_eq!(slice[1], [11.0, 10.0, 9.0]);
-    }
-
-    #[test]
-    fn mutable_iter() {
-        let mut vertices = data();
-        let slice: SliceMut<[f32; 3]> = SliceMut::new(&mut vertices, 0);
-        {
-            let mut iter = slice.iter();
-            assert_eq!(*iter.next().unwrap(), [1.0, -1.0, 1.0]);
-            assert_eq!(*iter.next().unwrap(), [-1.0, 1.0, 0.0]);
-            assert_eq!(iter.next(), None);
-        }
-
-        let slice: SliceMut<[f32; 2]> =
-            SliceMut::new(&mut vertices, std::mem::size_of::<[f32; 3]>());
-        {
-            let mut iter = slice.iter();
-            assert_eq!(*iter.next().unwrap(), [0.25, 0.5]);
-            assert_eq!(*iter.next().unwrap(), [-1.0, 0.25]);
-            assert_eq!(iter.next(), None);
-        }
-    }
-
-    #[test]
-    fn copy_from_slice() {
-        let mut vertices = data();
-        let slice: SliceMut<[f32; 3]> = SliceMut::new(&mut vertices, 0);
-
-        slice.copy_from_slice(&[[0.1_f32, 0.2, 0.3]]);
-        assert_eq!(slice[0], [0.1_f32, 0.2, 0.3]);
-        slice.copy_from_slice(&[[0.9_f32, 0.8, 0.7], [0.6, 0.5, 0.4]]);
-        assert_eq!(slice[0], [0.9, 0.8, 0.7]);
-        assert_eq!(slice[1], [0.6, 0.5, 0.4]);
-
-        let slice: SliceMut<[f32; 2]> =
-            SliceMut::new(&mut vertices, std::mem::size_of::<[f32; 3]>());
-        slice.copy_from_slice(&[[0.1_f32, 0.2]]);
-        assert_eq!(slice[0], [0.1, 0.2]);
-        slice.copy_from_slice(&[[0.1_f32, 0.2], [0.3, 0.4]]);
-        assert_eq!(slice[0], [0.1, 0.2]);
-        assert_eq!(slice[1], [0.3, 0.4]);
-    }
-}

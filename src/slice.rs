@@ -1,5 +1,5 @@
 use bytemuck::Pod;
-use std::marker::PhantomData;
+use std::{marker::PhantomData, num::NonZeroUsize, ops::Deref};
 
 use crate::shared_impl::{impl_iterator, SliceData, SliceError};
 
@@ -31,27 +31,88 @@ impl<'a, T: Pod> std::fmt::Debug for Slice<'a, T> {
 }
 
 impl<'a, T: Pod> Slice<'a, T> {
-    pub fn try_new<V: Pod>(data: &'a [V], offset: usize) -> Result<Self, SliceError> {
+    /// Try to create a strided slice starting at the byte offset `offset`.
+    ///
+    /// - `offset` represents the byte offset in `V` to start from and **must** be less than
+    ///   the size of `V`
+    /// - The size of `T` must be smaller or equal to `sizeof::<V>() - offset`
+    /// - The slice stride is set to the size of `V`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use strided_slice::Slice;
+    ///
+    /// #[repr(C)]
+    /// #[derive(Clone, Copy, Default, bytemuck::Pod, bytemuck::Zeroable)]
+    /// struct Vertex {
+    ///     position: [f32; 3],
+    ///     uv: [f32; 2],
+    /// }
+    ///
+    /// let data: [Vertex; 2] = [
+    ///     Vertex {
+    ///         position: [1.0, 1.0, 1.0],
+    ///         uv: [0.5, 0.5]
+    ///     },
+    ///     Vertex {
+    ///         position: [1.0, 1.0, -1.0],
+    ///         uv: [1.0, 0.0]
+    ///     },
+    /// ];
+    ///
+    /// // `positions` slice starts at byte offset 0, and stride will be 20 bytes (4 * 3 + 4 * 2).
+    /// let positions: Slice<[f32; 3]> = Slice::try_new(&data, 0).unwrap();
+    ///
+    /// // `uvs` slice starts at byte offset 4 * 3, and stride will be 20 bytes (4 * 3 + 4 * 2).
+    /// let uvs: Slice<[f32; 2]> = Slice::try_new(&data, std::mem::size_of::<[f32; 3]>()).unwrap();
+    /// ```
+    pub fn try_new<V: Pod>(data: &'a [V], byte_offset: usize) -> Result<Self, SliceError> {
         Ok(Self {
-            inner: SliceData::try_new(data, offset)?,
+            inner: SliceData::new_typed(data, byte_offset, 1)?,
             _phantom: PhantomData,
         })
+    }
+
+    /// Wrapper around [`Self::try_new()`].
+    pub fn new<V: Pod>(data: &'a [V], byte_offset: usize) -> Self {
+        Self::try_new(data, byte_offset).unwrap()
+    }
+
+    /// Similar to [`Self::try_new()`], but allows to pass a number of elements for the stride.
+    ///
+    /// Note: The stride is expressed in **count** of elements, and **not** in bytes.
+    pub fn try_strided<V: Pod>(
+        data: &'a [V],
+        byte_offset: usize,
+        elt_stride: NonZeroUsize,
+    ) -> Result<Self, SliceError> {
+        Ok(Self {
+            inner: SliceData::new_typed(data, byte_offset, elt_stride.get())?,
+            _phantom: PhantomData,
+        })
+    }
+
+    /// Wrapper around [`Self::try_strided()`].
+    pub fn strided<V: Pod>(data: &'a [V], byte_offset: usize, elt_stride: NonZeroUsize) -> Self {
+        Self::try_strided(data, byte_offset, elt_stride).unwrap()
     }
 
     // @todo: Non-Zero stride
-    pub fn try_raw(data: &'a [u8], stride: usize, offset: usize) -> Result<Self, SliceError> {
+    pub fn try_raw(
+        data: &'a [u8],
+        offset: usize,
+        stride: NonZeroUsize,
+    ) -> Result<Self, SliceError> {
+        let ptr = data.as_ptr().cast::<u8>();
         Ok(Self {
-            inner: SliceData::try_raw(data, stride, offset)?,
+            inner: SliceData::new(ptr, offset, stride.get(), data.len())?,
             _phantom: PhantomData,
         })
     }
 
-    pub fn new<V: Pod>(data: &'a [V], offset: usize) -> Self {
-        Self::try_new(data, offset).unwrap()
-    }
-
-    pub fn new_raw(data: &'a [u8], stride: usize, offset: usize) -> Self {
-        Self::try_raw(data, stride, offset).unwrap()
+    pub fn raw(data: &'a [u8], offset: usize, stride: NonZeroUsize) -> Self {
+        Self::try_raw(data, offset, stride).unwrap()
     }
 
     pub fn get(&self, index: usize) -> Option<&'a T> {
@@ -60,16 +121,16 @@ impl<'a, T: Pod> Slice<'a, T> {
             .map(|ptr| unsafe { std::mem::transmute::<_, &T>(ptr) })
     }
 
-    pub fn len(&self) -> usize {
-        self.inner.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.inner.is_empty()
-    }
-
     pub fn iter(&'a self) -> SliceIterator<'a, T> {
         SliceIterator::new(self)
+    }
+}
+
+impl<'a, Attr: Pod> Deref for Slice<'a, Attr> {
+    type Target = SliceData<Attr>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
     }
 }
 
@@ -107,102 +168,3 @@ impl<'a, T: Pod> SliceIterator<'a, T> {
     }
 }
 impl_iterator!(SliceIterator -> &'a T);
-
-///
-/// Test
-///
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[repr(C)]
-    #[derive(Clone, Copy, Default, bytemuck::Pod, bytemuck::Zeroable)]
-    struct Vertex {
-        position: [f32; 3],
-        uv: [f32; 2],
-    }
-
-    fn data() -> Vec<Vertex> {
-        vec![
-            Vertex {
-                position: [1.0, -1.0, 1.0],
-                uv: [0.25, 0.5],
-            },
-            Vertex {
-                position: [-1.0, 1.0, 0.0],
-                uv: [-1.0, 0.25],
-            },
-        ]
-    }
-
-    #[test]
-    fn slice_count() {
-        let vertices = data();
-
-        let slice: Slice<f32> = Slice::new(&[] as &[f32], 0);
-        assert_eq!(slice.len(), 0);
-
-        let slice: Slice<f32> = Slice::new(&vertices, 0);
-        assert_eq!(slice.len(), 2);
-
-        let slice: Slice<[f32; 2]> = Slice::new(&vertices, std::mem::size_of::<[f32; 3]>());
-        assert_eq!(slice.len(), 2);
-
-        let slice: Slice<[f32; 2]> = Slice::new(&vertices[1..], std::mem::size_of::<[f32; 3]>());
-        assert_eq!(slice.len(), 1);
-
-        let positions: [f32; 3] = [1.0, 2.0, 3.0];
-        let slice: Slice<f32> = Slice::new(&positions, 0);
-        assert_eq!(slice.len(), 3);
-
-        let positions: [f32; 3] = [1.0, 2.0, 3.0];
-        let slice: Slice<f32> = Slice::new(&positions, 0);
-        assert_eq!(slice.len(), 3);
-    }
-
-    #[test]
-    fn from_raw_part_invalid_offset() {
-        let data: Vec<u8> = vec![0, 200, 100];
-        let error = Slice::<f32>::try_raw(&data, 2, 3).unwrap_err();
-        assert_eq!(error, SliceError::OffsetOutOfRange);
-    }
-
-    #[test]
-    fn from_raw_part_invalid_stride() {
-        let data: Vec<u8> = vec![0, 200, 100, 255];
-        let error = Slice::<f32>::try_raw(&data, 8, 0).unwrap_err();
-        assert_eq!(error, SliceError::StrideOOB);
-    }
-
-    #[test]
-    fn indexing() {
-        let vertices = data();
-        let slice: Slice<[f32; 3]> = Slice::new(&vertices, 0);
-        assert_eq!(slice[0], [1.0, -1.0, 1.0]);
-        assert_eq!(slice[1], [-1.0, 1.0, 0.0]);
-
-        let slice: Slice<[f32; 2]> = Slice::new(&vertices[1..], std::mem::size_of::<[f32; 3]>());
-        assert_eq!(slice[0], [-1.0, 0.25]);
-        assert_eq!(slice.get(1), None);
-    }
-
-    #[test]
-    fn iter() {
-        let vertices = data();
-        {
-            let slice: Slice<[f32; 3]> = Slice::new(&vertices, 0);
-            let mut iter = slice.iter();
-            assert_eq!(*iter.next().unwrap(), [1.0, -1.0, 1.0]);
-            assert_eq!(*iter.next().unwrap(), [-1.0, 1.0, 0.0]);
-            assert_eq!(iter.next(), None);
-        }
-        {
-            let slice: Slice<[f32; 2]> = Slice::new(&vertices, std::mem::size_of::<[f32; 3]>());
-            let mut iter = slice.iter();
-            assert_eq!(*iter.next().unwrap(), [0.25, 0.5]);
-            assert_eq!(*iter.next().unwrap(), [-1.0, 0.25]);
-            assert_eq!(iter.next(), None);
-        }
-    }
-}

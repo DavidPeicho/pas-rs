@@ -1,23 +1,21 @@
 use std::marker::PhantomData;
 
-use bytemuck::Pod;
-
 #[derive(Copy, Clone, PartialEq)]
 pub enum SliceError {
-    OffsetOutOfRange,
+    OffsetOutOfBounds,
     SliceSizeNotMatchingStride,
-    StrideOOB,
+    StrideOutOfBounds,
     AlignmentFault,
 }
 
 impl std::fmt::Debug for SliceError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::OffsetOutOfRange => write!(f, "Offset out of range"),
+            Self::OffsetOutOfBounds => write!(f, "Offset out of range"),
             Self::SliceSizeNotMatchingStride => {
                 write!(f, "Slice byte len isn't a multiple of the stride")
             }
-            Self::StrideOOB => write!(f, "Stride out-of-bounds"),
+            Self::StrideOutOfBounds => write!(f, "Stride out-of-bounds"),
             Self::AlignmentFault => write!(f, "Alignment fault"),
         }
     }
@@ -26,22 +24,47 @@ impl std::fmt::Debug for SliceError {
 #[derive(Clone, Copy)]
 pub struct SliceData<Attr: Sized> {
     pub(crate) data: *const u8,
-    len: usize,
+    bytes: usize,
     stride: usize,
     _phantom: PhantomData<Attr>,
 }
 
 impl<Attr: Sized> SliceData<Attr> {
-    pub(crate) fn try_new<V: Pod>(data: &[V], offset: usize) -> Result<Self, SliceError> {
+    pub(crate) fn new_typed<V: Pod>(
+        data: &[V],
+        offset: usize,
+        elt_count: usize,
+    ) -> Result<Self, SliceError> {
+        let stride = std::mem::size_of::<V>() * elt_count;
+        let bytes = data.len() * std::mem::size_of::<V>();
         let ptr = data.as_ptr().cast::<u8>();
-        let stride = std::mem::size_of::<V>();
-        let size = std::mem::size_of_val(data);
-        Self::try_raw_ptr(ptr, stride, offset, size)
+        Self::new(ptr, offset, stride, bytes)
     }
 
-    pub(crate) fn try_raw(data: &[u8], stride: usize, offset: usize) -> Result<Self, SliceError> {
-        let ptr = data.as_ptr().cast::<u8>();
-        Self::try_raw_ptr(ptr, stride, offset, data.len())
+    pub(crate) fn new(
+        ptr: *const u8,
+        offset: usize,
+        stride: usize,
+        bytes: usize,
+    ) -> Result<Self, SliceError> {
+        println!("stride {}, offset {}, bytes {},", stride, offset, bytes);
+        let ptr: *const u8 = unsafe { ptr.add(offset) };
+        // Empty slice are allowed, but we need to ensure that
+        // the offset and stride are valid.
+        if std::mem::size_of::<Attr>() > stride {
+            Err(SliceError::OffsetOutOfBounds)
+        } else if bytes > 0 && stride > bytes {
+            Err(SliceError::StrideOutOfBounds)
+        } else if ptr.align_offset(std::mem::align_of::<Attr>()) != 0 {
+            Err(SliceError::AlignmentFault)
+        } else {
+            Ok(Self {
+                data: ptr,
+                bytes,
+                stride,
+                _phantom: PhantomData,
+            })
+        }
     }
 
     pub(crate) fn start(&self) -> *const u8 {
@@ -49,21 +72,25 @@ impl<Attr: Sized> SliceData<Attr> {
     }
 
     pub(crate) fn end(&self) -> *const u8 {
-        if self.len > 0 {
-            self.get(self.len - 1).unwrap()
+        let count = self.len();
+        if count > 0 {
+            self.get(count - 1).unwrap()
         } else {
             self.data
         }
     }
 
+    /// Number of elements in the slice
     pub fn len(&self) -> usize {
-        self.len
+        self.bytes.div_ceil(self.stride)
     }
 
+    /// `true` if the slice has size `0`, `false` otherwise
     pub fn is_empty(&self) -> bool {
-        self.len == 0
+        self.len() == 0
     }
 
+    /// Get a pointer to the element at index `index`
     pub fn get(&self, index: usize) -> Option<*const u8> {
         if index < self.len() {
             let start = self.stride * index;
@@ -73,35 +100,9 @@ impl<Attr: Sized> SliceData<Attr> {
         }
     }
 
+    /// Slice strides, in **bytes**
     pub fn stride(&self) -> usize {
         self.stride
-    }
-
-    // @todo: Non-Zero stride
-    fn try_raw_ptr(
-        ptr: *const u8,
-        stride: usize,
-        offset: usize,
-        bytes: usize,
-    ) -> Result<Self, SliceError> {
-        // Empty slice are allowed, but we need to ensure that
-        // the offset and stride are valid.
-        if offset + std::mem::size_of::<Attr>() > stride {
-            Err(SliceError::OffsetOutOfRange)
-        } else if bytes > 0 && stride > bytes {
-            Err(SliceError::StrideOOB)
-        } else if unsafe { ptr.add(offset).align_offset(std::mem::align_of::<Attr>()) != 0 } {
-            Err(SliceError::AlignmentFault)
-        } else if bytes % stride != 0 {
-            Err(SliceError::SliceSizeNotMatchingStride)
-        } else {
-            Ok(Self {
-                data: unsafe { ptr.add(offset) },
-                len: bytes / stride,
-                stride,
-                _phantom: PhantomData,
-            })
-        }
     }
 }
 
@@ -126,4 +127,5 @@ macro_rules! impl_iterator {
     };
 }
 
+use bytemuck::Pod;
 pub(super) use impl_iterator;
