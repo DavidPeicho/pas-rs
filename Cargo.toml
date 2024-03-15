@@ -5,3 +5,6 @@ edition = "2021"
 
 [dependencies]
 bytemuck = { version = "1.7.2", features = ["derive"] }
+
+[dev-dependencies]
+paste = "1.0.14"
