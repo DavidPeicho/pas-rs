@@ -3,8 +3,8 @@ use strided_slice::*;
 #[repr(C)]
 #[derive(Clone, Copy, Default, bytemuck::Pod, bytemuck::Zeroable)]
 struct Vertex {
-    position: [f32; 3],
-    uv: [f32; 2],
+    pub position: [f32; 3],
+    pub uv: [f32; 2],
 }
 
 fn data() -> Vec<Vertex> {
@@ -80,4 +80,16 @@ fn copy_from_slice() {
     slice.copy_from_slice(&[[0.1_f32, 0.2], [0.3, 0.4]]);
     assert_eq!(slice[0], [0.1, 0.2]);
     assert_eq!(slice[1], [0.3, 0.4]);
+}
+
+#[test]
+fn macro_offset() {
+    let mut vertices = data();
+
+    let slice = Slicer::new()
+        .offset_of(&vertices[1].position[0])
+        .build_mut::<[f32; 3], _>(&mut vertices);
+
+    assert_eq!(slice[0], [-1.0_f32, 1.0, 0.0]);
+    // assert_eq!(slice.len(), 1);
 }

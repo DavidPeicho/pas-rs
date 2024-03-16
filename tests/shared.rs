@@ -1,4 +1,3 @@
-use paste;
 use std::num::NonZeroUsize;
 use strided_slice::*;
 
