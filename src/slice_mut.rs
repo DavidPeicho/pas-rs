@@ -1,5 +1,5 @@
 use bytemuck::Pod;
-use std::{marker::PhantomData, num::NonZeroUsize};
+use std::{marker::PhantomData, num::NonZeroUsize, ops::Deref};
 
 use crate::shared_impl::{impl_iterator, SliceData, SliceError};
 
@@ -67,15 +67,9 @@ impl<'a, T: Pod> SliceMut<'a, T> {
         Self::try_raw(data, offset, stride).unwrap()
     }
 
-    pub fn get(&self, index: usize) -> Option<&'a T> {
-        self.inner
-            .get(index)
-            .map(|ptr| unsafe { std::mem::transmute::<_, &T>(ptr) })
-    }
-
     pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
         self.inner
-            .get(index)
+            .get_ptr(index)
             .map(|ptr| unsafe { std::mem::transmute::<_, &mut T>(ptr) })
     }
 
@@ -100,7 +94,7 @@ impl<'a, T: Pod> SliceMut<'a, T> {
 
         let bytes: &[u8] = bytemuck::cast_slice(other_data);
         for i in 0..other_count {
-            let ptr = self.inner.get(i).unwrap() as *mut u8;
+            let ptr = self.inner.get_ptr(i).unwrap() as *mut u8;
             let other_ptr = unsafe { bytes.as_ptr().add(i * other_stride) };
             unsafe {
                 ptr.copy_from_nonoverlapping(other_ptr, other_stride);
@@ -118,6 +112,14 @@ impl<'a, T: Pod> SliceMut<'a, T> {
 
     pub fn iter(&'a self) -> SliceMutIterator<'a, T> {
         SliceMutIterator::new(self)
+    }
+}
+
+impl<'a, Attr: Pod> Deref for SliceMut<'a, Attr> {
+    type Target = SliceData<Attr>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
     }
 }
 

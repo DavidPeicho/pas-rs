@@ -28,6 +28,7 @@ fn mutable_indexing() {
     let mut vertices = data();
 
     let mut slice: SliceMut<[f32; 3]> = SliceMut::new(&mut vertices, 0);
+
     assert_eq!(slice[0], [1.0, -1.0, 1.0]);
     assert_eq!(slice[1], [-1.0, 1.0, 0.0]);
 

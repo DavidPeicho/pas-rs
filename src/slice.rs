@@ -115,12 +115,6 @@ impl<'a, T: Pod> Slice<'a, T> {
         Self::try_raw(data, offset, stride).unwrap()
     }
 
-    pub fn get(&self, index: usize) -> Option<&'a T> {
-        self.inner
-            .get(index)
-            .map(|ptr| unsafe { std::mem::transmute::<_, &T>(ptr) })
-    }
-
     pub fn iter(&'a self) -> SliceIterator<'a, T> {
         SliceIterator::new(self)
     }

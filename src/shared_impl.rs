@@ -36,7 +36,7 @@ impl<Attr: Sized> SliceData<Attr> {
         elt_count: usize,
     ) -> Result<Self, SliceError> {
         let stride = std::mem::size_of::<V>() * elt_count;
-        let bytes = data.len() * std::mem::size_of::<V>();
+        let bytes = std::mem::size_of_val(data);
         let ptr = data.as_ptr().cast::<u8>();
         Self::new(ptr, offset, stride, bytes)
     }
@@ -74,10 +74,15 @@ impl<Attr: Sized> SliceData<Attr> {
     pub(crate) fn end(&self) -> *const u8 {
         let count = self.len();
         if count > 0 {
-            self.get(count - 1).unwrap()
+            self.get_ptr(count - 1).unwrap()
         } else {
             self.data
         }
+    }
+
+    pub fn get(&self, index: usize) -> Option<&Attr> {
+        self.get_ptr(index)
+            .map(|ptr| unsafe { std::mem::transmute::<_, &Attr>(ptr) })
     }
 
     /// Number of elements in the slice
@@ -91,7 +96,7 @@ impl<Attr: Sized> SliceData<Attr> {
     }
 
     /// Get a pointer to the element at index `index`
-    pub fn get(&self, index: usize) -> Option<*const u8> {
+    pub(crate) fn get_ptr(&self, index: usize) -> Option<*const u8> {
         if index < self.len() {
             let start = self.stride * index;
             Some(unsafe { self.data.add(start) })
