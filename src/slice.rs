@@ -104,9 +104,8 @@ impl<'a, T: Pod> Slice<'a, T> {
         offset: usize,
         stride: NonZeroUsize,
     ) -> Result<Self, SliceError> {
-        let ptr = data.as_ptr().cast::<u8>();
         Ok(Self {
-            inner: SliceData::new(ptr, offset, stride.get(), data.len())?,
+            inner: SliceData::new(data.as_ptr_range(), offset, stride.get(), data.len())?,
             _phantom: PhantomData,
         })
     }

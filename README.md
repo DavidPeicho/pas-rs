@@ -1,10 +1,14 @@
 # strided-slice-rs
 
-Strided slice implementation.
+Crate for slicing stuff! Especially strided data.
+
+This crate allows you to:
+* Get a slice with a custom stride
+* Slice only a part of a struct
 
 ## Example
 
-Slicing at a reference:
+Slicing starting at a reference:
 
 ```rust
 use strided_slice::Slicer;
@@ -18,14 +22,8 @@ struct Vertex {
 
 fn main() {
     let vertices = [
-        Vertex {
-            position: [1.0, 0.5, 1.0],
-            uv: [1.0, 1.0],
-        },
-        Vertex {
-            position: [1.0, 1.0, 0.5],
-            uv: [0.0, 1.0],
-        },
+        Vertex {position: [1.0, 0.5, 1.0], uv: [1.0, 1.0]},
+        Vertex {position: [1.0, 1.0, 0.5], uv: [0.0, 1.0]},
     ];
 
     let uvs: Slice<[f32; 2]> = Slicer::new()

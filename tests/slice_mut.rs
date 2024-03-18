@@ -83,13 +83,28 @@ fn copy_from_slice() {
 }
 
 #[test]
-fn macro_offset() {
+fn slicer() {
     let mut vertices = data();
 
     let slice = Slicer::new()
-        .offset_of(&vertices[1].position[0])
+        .offset_of(&vertices[0].position)
         .build_mut::<[f32; 3], _>(&mut vertices);
+    assert_eq!(slice.len(), 2);
+    assert_eq!(slice[0], [1.0_f32, -1.0, 1.0]);
+    assert_eq!(slice[1], [-1.0_f32, 1.0, 0.0]);
 
+    let slice = Slicer::new()
+        .offset_of(&vertices[1].position)
+        .build_mut::<[f32; 3], _>(&mut vertices);
+    assert_eq!(slice.len(), 1);
     assert_eq!(slice[0], [-1.0_f32, 1.0, 0.0]);
-    // assert_eq!(slice.len(), 1);
+}
+
+#[test]
+fn slicer_stride() {
+    let mut data = [0.0_f32, 1.0, 2.0, 3.0, 4.0, 5.0];
+    let slice = Slicer::new().stride(3).build_mut::<[f32; 3], _>(&mut data);
+    assert_eq!(slice.len(), 2);
+    assert_eq!(slice[0], [0.0_f32, 1.0, 2.0]);
+    assert_eq!(slice[1], [3.0_f32, 4.0, 5.0]);
 }
