@@ -2,6 +2,12 @@ use bytemuck::Pod;
 
 use crate::{Slice, SliceMut};
 
+/// Get the offset between the start of a slice and a pointer.
+///
+/// # Panics
+///
+/// Panics if the `start` argument pointer isn't in the range
+/// of the slice start and end pointers.
 pub fn get_byte_offset<V: Sized>(data: &[V], start: *const u8) -> usize {
     let ptr_range = data.as_ptr_range();
     let ptr_range = ptr_range.start as *const u8..ptr_range.end as *const u8;
@@ -19,9 +25,7 @@ pub struct AttributeSliceBuilder<Attr: Pod>(*const Attr);
 
 impl<Attr: Pod> AttributeSliceBuilder<Attr> {
     pub fn new(elt: &Attr) -> Self {
-        Self {
-            0: elt as *const Attr,
-        }
+        Self(elt as *const Attr)
     }
     pub fn build<'a, V: Pod>(&self, data: &'a [V]) -> Slice<'a, Attr> {
         let byte_offset = get_byte_offset(data, self.0 as *const u8);
@@ -52,8 +56,10 @@ impl<Attr: Pod> AttributeSliceBuilder<Attr> {
 macro_rules! slice_attr {
     ($data:expr, [$index:expr].$( $rest:ident ).*) => {
         {
+            use strided_slice::AttributeSliceBuilder;
+
             let r = &($data[$index].$($rest).*);
-            AttributeSliceBuilder::new(r).build()
+            AttributeSliceBuilder::new(r).build(&$data)
         }
     };
 }
@@ -77,6 +83,8 @@ macro_rules! slice_attr {
 macro_rules! slice {
     ($data:expr, [$index:expr].$( $rest:ident ).*) => {
         {
+            use strided_slice::get_byte_offset;
+
             let r = &($data[$index].$($rest).*);
             let byte_offset = get_byte_offset(&$data, r as *const _ as *const u8);
             Slice::new(&$data, 1, byte_offset)
@@ -89,6 +97,8 @@ macro_rules! slice {
 macro_rules! slice_mut {
     ($data:expr, [$index:expr].$( $rest:ident ).*) => {
         {
+            use strided_slice::get_byte_offset;
+
             let r = &($data[$index].$($rest).*);
             let byte_offset = get_byte_offset(&$data, r as *const _ as *const u8);
             SliceMut::new(&mut $data, 1, byte_offset)
@@ -101,6 +111,7 @@ macro_rules! slice_mut {
 macro_rules! slice_attr_mut {
     ($data:expr, [$index:expr].$( $rest:ident ).*) => {
         {
+            use strided_slice::AttributeSliceBuilder;
             let r = &mut ($data[$index].$($rest).*);
             AttributeSliceBuilder::new(r).build_mut(&mut $data)
         }

@@ -139,6 +139,12 @@ macro_rules! impl_iterator {
                 }
             }
         }
+
+        impl<'a, T: Pod + Debug> std::fmt::Debug for $name<'a, T> {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.debug_list().entries(self.into_iter()).finish()
+            }
+        }
     };
 }
 

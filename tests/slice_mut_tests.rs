@@ -106,32 +106,3 @@ fn slicer() {
 //     assert_eq!(slice[0], [0.0_f32, 1.0, 2.0]);
 //     assert_eq!(slice[1], [3.0_f32, 4.0, 5.0]);
 // }
-
-// macro_rules! access {
-//     ($slice:expr, [$index:expr].$field:ident) => {
-//         $slice[$index].$field
-//     };
-//     ($slice:expr, [$index:expr].$field:ident.$( $rest:ident ).*) => {
-//         access!($slice, [$index].$field).$($rest).*
-//     };
-//     ($slice:expr, [$index:expr]) => {
-//         $slice[$index]
-//     };
-// }
-
-#[test]
-fn test() {
-    let mut data = vec![
-        Vertex {
-            position: [1.0, -1.0, 1.0],
-            uv: [0.0, 1.0],
-        },
-        Vertex {
-            position: [1.0, 0.5, 1.0],
-            uv: [0.0, -1.],
-        },
-    ];
-
-    let slice = slice_attr_mut!(data, [0].position);
-    println!("{:?}", slice);
-}

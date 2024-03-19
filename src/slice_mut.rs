@@ -129,6 +129,7 @@ where
 /// Iterator
 ///
 
+#[derive(Clone, Copy)]
 pub struct SliceMutIterator<'a, T: Pod> {
     start: *const u8,
     end: *const u8,
