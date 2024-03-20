@@ -76,7 +76,8 @@ macro_rules! tests {
             assert_eq!(slice[1], [5, 6, 7]);
 
             // Point to third uv
-            let slice: $slice<[u32; 2]> = $slice::new(vertices.$borrow(), 2 * std::mem::size_of::<Vertex>() + std::mem::size_of::<[f32; 3]>(), 1);
+            let slice: $slice<[u32; 2]> = $slice::new(vertices.$borrow(),
+                2 * std::mem::size_of::<Vertex>() + std::mem::size_of::<[f32; 3]>(), 1);
             assert_eq!(slice[0], [13, 14]);
             assert_eq!(slice.get(1), None);
         }
@@ -103,10 +104,27 @@ macro_rules! tests {
 
         #[test]
         #[should_panic]
-        fn [<offset_larger_than_stride_$name>]() {
+        fn [<attr_larger_than_stride_$name>]() {
+            #[allow(unused_mut)]
+            let mut positions = [0, 1, 2, 3];
+            let _: $slice<Vertex> = $slice::new(positions.$borrow(), 0, 1);
+        }
+
+        #[test]
+        #[should_panic]
+        fn [<offset_larger_than_slice_$name>]() {
             #[allow(unused_mut)]
             let mut vertices = data();
-            let slice: $slice<[u32; 3]> = $slice::new(vertices.$borrow(), std::mem::size_of::<Vertex>(), 1);
+            let bytes = std::mem::size_of_val(&*vertices);
+            let _: $slice<[u32; 3]> = $slice::new(vertices.$borrow(), bytes, 1);
+        }
+
+        #[test]
+        #[should_panic]
+        fn [<unaligned_attr_$name>]() {
+            #[allow(unused_mut)]
+            let mut positions = [0, 1, 2, 3];
+            let _: $slice<u32> = $slice::new(positions.$borrow(), 1, 1);
         }
     }};
 }
