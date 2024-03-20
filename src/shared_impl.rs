@@ -1,38 +1,85 @@
-use std::marker::PhantomData;
+use std::{any::TypeId, marker::PhantomData};
 
+/// Slice error
+///
+/// An error is raised during when creating a slice via [`Slice::new`], or [`SliceMut::new`].
 #[derive(Copy, Clone, PartialEq)]
 pub enum SliceError {
-    OffsetOutOfBounds,
-    AttributeLargerThanStride,
-    SliceSizeNotMatchingStride,
-    StrideOutOfBounds,
-    AlignmentFault,
+    /// Provided offset is out of bounds regarding the slice size, e.g.,
+    ///
+    /// ```rust
+    /// let data: Vec<u32> = [];
+    /// // Panics, since the slice doesn't have a size of at least 16 bytes.
+    /// let slice: Slice<u16> = Slice::new(&data, 16, 1);
+    /// ```
+    OffsetOutOfBounds {
+        size: usize,
+        offset: usize,
+    },
+    /// Sliced attribute byte size is bigger than the stride, e.g.,
+    ///
+    /// ```rust
+    /// let data: Vec<u16> = [0, 1, 2];
+    /// // Panics, since the slice have a stride of 1 * std::mem::size_of::<u16>(),
+    /// // but the requested attribute has size std::mem::size_of::<u32>().
+    /// let slice: Slice<u32> = Slice::new(&data, 16, 1);
+    /// ```
+    AttributeLargerThanStride {
+        type_id: TypeId,
+        attr: usize,
+        stride: usize,
+    },
+    AlignmentFault {
+        type_id: TypeId,
+        offset: usize,
+    },
 }
 
 impl std::fmt::Debug for SliceError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // @todo: Improve error messages, with byte offsets.
         match self {
-            Self::OffsetOutOfBounds => write!(f, "Offset out of range"),
-            Self::AttributeLargerThanStride => write!(f, "Attribute larger than stride"),
-            Self::SliceSizeNotMatchingStride => {
-                write!(f, "Slice byte len isn't a multiple of the stride")
+            Self::OffsetOutOfBounds { size, offset } => {
+                write!(
+                    f,
+                    "Byte offset is {}, but slice has a size of {} bytes",
+                    offset, size
+                )
             }
-            Self::StrideOutOfBounds => write!(f, "Stride out-of-bounds"),
-            Self::AlignmentFault => write!(f, "Alignment fault"),
+            Self::AttributeLargerThanStride {
+                type_id,
+                attr,
+                stride,
+            } => {
+                write!(
+                    f,
+                    "Attribute '{:?}' with size {} bytes, larger than stride with size {}",
+                    type_id, attr, stride
+                )
+            }
+            Self::AlignmentFault { type_id, offset } => write!(
+                f,
+                "Attribute '{:?}' isn't aligned to the byte offset {}",
+                type_id, offset
+            ),
         }
     }
 }
 
+/// Slice base implementation.
+///
+/// Do not use this type directly, instead:
+/// - Use the `slice_attr`, `slice_attr_mut`, `slice`, or `slice_mut` macros
+/// - Use the [`Slice`]/[`SliceMut`] types directly
 #[derive(Clone, Copy)]
-pub struct SliceData<Attr: Sized> {
+pub struct SliceBase<Attr: Sized + 'static> {
     pub(crate) data: *const u8,
     end: *const u8,
+    /// Stride, in **bytes**
     stride: usize,
     _phantom: PhantomData<Attr>,
 }
 
-impl<Attr: Sized> SliceData<Attr> {
+impl<Attr: Sized> SliceBase<Attr> {
     pub(crate) fn new_typed<V: Pod>(
         data: &[V],
         offset: usize,
@@ -59,11 +106,21 @@ impl<Attr: Sized> SliceData<Attr> {
         // Empty slice are allowed, but we need to ensure that
         // the offset and stride are valid.
         if std::mem::size_of::<Attr>() > stride {
-            Err(SliceError::OffsetOutOfBounds)
-        } else if bytes > 0 && stride > bytes {
-            Err(SliceError::StrideOutOfBounds)
+            Err(SliceError::AttributeLargerThanStride {
+                type_id: std::any::TypeId::of::<Attr>(),
+                attr: std::mem::size_of::<Attr>(),
+                stride,
+            })
+        } else if offset >= bytes {
+            Err(SliceError::OffsetOutOfBounds {
+                size: bytes,
+                offset,
+            })
         } else if ptr.align_offset(std::mem::align_of::<Attr>()) != 0 {
-            Err(SliceError::AlignmentFault)
+            Err(SliceError::AlignmentFault {
+                type_id: std::any::TypeId::of::<Attr>(),
+                offset,
+            })
         } else {
             Ok(Self {
                 data: ptr,
@@ -121,6 +178,7 @@ impl<Attr: Sized> SliceData<Attr> {
     }
 }
 
+/// Implement [`Iterator`] and related traits for [`SliceIterator`]/[`SliceIteratorMut`].
 macro_rules! impl_iterator {
     ($name: ident -> $elem: ty) => {
         impl<'a, T: Pod> Iterator for $name<'a, T> {

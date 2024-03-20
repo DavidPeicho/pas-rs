@@ -1,13 +1,13 @@
 use bytemuck::Pod;
 use std::{fmt::Debug, marker::PhantomData, num::NonZeroUsize, ops::Deref};
 
-use crate::shared_impl::{impl_iterator, SliceData, SliceError};
+use crate::shared_impl::{impl_iterator, SliceBase};
 
 /// Mutable slice
 ///
-/// For more information, have a look at the Slice type.
+/// For more information, have a look at the [`Slice`] type.
 pub struct SliceMut<'a, T: Pod> {
-    inner: SliceData<T>,
+    inner: SliceBase<T>,
     _phantom: PhantomData<&'a mut T>,
 }
 
@@ -19,27 +19,19 @@ impl<'a, T: Pod + Debug> std::fmt::Debug for SliceMut<'a, T> {
 
 impl<'a, T: Pod> SliceMut<'a, T> {
     /// Mutable version of [`Slice::new()`].
-    pub fn new<V: Pod>(data: &'a mut [V], elt_stride: usize, byte_offset: usize) -> Self {
+    pub fn new<V: Pod>(data: &'a mut [V], byte_offset: usize, elt_stride: usize) -> Self {
         Self {
-            inner: SliceData::new_typed(data, byte_offset, elt_stride).unwrap(),
+            inner: SliceBase::new_typed(data, byte_offset, elt_stride).unwrap(),
             _phantom: PhantomData,
         }
     }
 
-    // @todo: Non-Zero stride
-    pub fn try_raw(
-        data: &'a [u8],
-        offset: usize,
-        stride: NonZeroUsize,
-    ) -> Result<Self, SliceError> {
-        Ok(Self {
-            inner: SliceData::new(data.as_ptr_range(), offset, stride.get(), data.len())?,
-            _phantom: PhantomData,
-        })
-    }
-
     pub fn raw(data: &'a [u8], offset: usize, stride: NonZeroUsize) -> Self {
-        Self::try_raw(data, offset, stride).unwrap()
+        let inner = SliceBase::new(data.as_ptr_range(), offset, stride.get(), data.len()).unwrap();
+        Self {
+            inner,
+            _phantom: PhantomData,
+        }
     }
 
     pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
@@ -98,7 +90,7 @@ impl<'a, T: Pod> SliceMut<'a, T> {
 }
 
 impl<'a, Attr: Pod> Deref for SliceMut<'a, Attr> {
-    type Target = SliceData<Attr>;
+    type Target = SliceBase<Attr>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner

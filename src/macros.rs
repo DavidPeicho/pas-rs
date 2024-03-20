@@ -35,11 +35,11 @@ impl<Attr: Pod> AttributeSliceBuilder<Attr> {
     }
     pub fn build<'a, V: Pod>(&self, data: &'a [V]) -> Slice<'a, Attr> {
         let byte_offset = get_byte_offset(data, self.start as *const u8);
-        Slice::new(data, self.elt_stride, byte_offset)
+        Slice::new(data, byte_offset, self.elt_stride)
     }
     pub fn build_mut<'a, V: Pod>(&self, data: &'a mut [V]) -> SliceMut<'a, Attr> {
         let byte_offset = get_byte_offset(data, self.start as *const u8);
-        SliceMut::new(data, self.elt_stride, byte_offset)
+        SliceMut::new(data, byte_offset, self.elt_stride)
     }
 }
 
@@ -103,7 +103,7 @@ macro_rules! slice {
 
             let r = &($data$($rest)*);
             let byte_offset = get_byte_offset(&$data, r as *const _ as *const u8);
-            Slice::new(&$data, $stride, byte_offset)
+            Slice::new(&$data, byte_offset, $stride)
         }
     };
     ($data:expr, $( $rest:tt )*) => {
@@ -120,7 +120,7 @@ macro_rules! slice_mut {
 
             let r = &($data$($rest)*);
             let byte_offset = get_byte_offset(&$data, r as *const _ as *const u8);
-            SliceMut::new(&mut $data, 1, byte_offset)
+            SliceMut::new(&mut $data, byte_offset, 1)
         }
     };
     ($data:expr, $( $rest:tt )*) => {
