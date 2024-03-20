@@ -1,5 +1,5 @@
 use bytemuck::Pod;
-use std::{fmt::Debug, marker::PhantomData, num::NonZeroUsize, ops::Deref};
+use std::{fmt::Debug, marker::PhantomData, ops::Deref};
 
 use crate::shared_impl::{impl_iterator, SliceBase};
 
@@ -62,15 +62,15 @@ impl<'a, T: Pod> Slice<'a, T> {
     /// ];
     ///
     /// // `positions` slice starts at byte offset 0, and stride will be 20 bytes (4 * 3 + 4 * 2).
-    /// let positions: Slice<[f32; 3]> = Slice::new(&data, 1, 0).unwrap();
+    /// let positions: Slice<[f32; 3]> = Slice::new(&data, 0, 1).unwrap();
     ///
     /// // `uvs` slice starts at byte offset 4 * 3, and stride will be 20 bytes (4 * 3 + 4 * 2).
-    /// let uvs: Slice<[f32; 2]> = Slice::try_new(&data, 1, std::mem::size_of::<[f32; 3]>()).unwrap();
+    /// let uvs: Slice<[f32; 2]> = Slice::new(&data, std::mem::size_of::<[f32; 3]>(), 1);
     /// ```
     ///
     /// ## Panics
     ///
-    /// TODO
+    /// This method is a wrapper around
     pub fn new<V: Pod>(data: &'a [V], byte_offset: usize, elt_stride: usize) -> Self {
         Self {
             inner: SliceBase::new_typed(data, byte_offset, elt_stride).unwrap(),
@@ -78,10 +78,39 @@ impl<'a, T: Pod> Slice<'a, T> {
         }
     }
 
-    // @todo: Non-Zero stride
-    pub fn raw(data: &'a [u8], offset: usize, stride: NonZeroUsize) -> Self {
+    /// Create a strided slice starting at the byte offset `offset`.
+    ///
+    /// This is similar to [`Self::new`], but the offset **and** the stride
+    /// must be specified in **bytes**, since no type inference can occur.
+    ///
+    /// This method will be useful when loading 3D models, with the data layout
+    /// not known at compile time.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use strided_slice::Slice;
+    ///
+    /// let data: &[u8] = get_data();
+    ///
+    /// // Let's assume the array contains a serialized `Vertex` struct with a size of 20 bytes.
+    /// let byte_stride = 20;
+    ///
+    /// // Slice starts at byte offset 0.
+    /// let positions: Slice<[f32; 3]> = Slice::new(&data, 0, byte_stride).unwrap();
+    ///
+    /// // Slice starts at byte offset 4 * 3
+    /// let uvs: Slice<[f32; 2]> = Slice::try_new(&data, std::mem::size_of::<[f32; 3]>(), byte_stride);
+    /// ```
+    ///
+    /// ## Panics
+    ///
+    /// Panics in a similar way to [`Self::new`].
+    pub fn raw(data: &'a [u8], byte_offset: usize, byte_stride: usize) -> Self {
+        let inner =
+            SliceBase::new(data.as_ptr_range(), byte_offset, byte_stride, data.len()).unwrap();
         Self {
-            inner: SliceBase::new(data.as_ptr_range(), offset, stride.get(), data.len()).unwrap(),
+            inner,
             _phantom: PhantomData,
         }
     }

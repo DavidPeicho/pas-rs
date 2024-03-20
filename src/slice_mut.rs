@@ -1,5 +1,5 @@
 use bytemuck::Pod;
-use std::{fmt::Debug, marker::PhantomData, num::NonZeroUsize, ops::Deref};
+use std::{fmt::Debug, marker::PhantomData, ops::Deref};
 
 use crate::shared_impl::{impl_iterator, SliceBase};
 
@@ -26,8 +26,10 @@ impl<'a, T: Pod> SliceMut<'a, T> {
         }
     }
 
-    pub fn raw(data: &'a [u8], offset: usize, stride: NonZeroUsize) -> Self {
-        let inner = SliceBase::new(data.as_ptr_range(), offset, stride.get(), data.len()).unwrap();
+    /// Mutable version of [`Slice::raw()`].
+    pub fn raw(data: &'a [u8], byte_offset: usize, byte_stride: usize) -> Self {
+        let inner =
+            SliceBase::new(data.as_ptr_range(), byte_offset, byte_stride, data.len()).unwrap();
         Self {
             inner,
             _phantom: PhantomData,
