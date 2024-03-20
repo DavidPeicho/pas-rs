@@ -56,7 +56,7 @@ impl<'a, T: Pod> Slice<'a, T> {
     /// ];
     ///
     /// // `positions` slice starts at byte offset 0, and stride will be 20 bytes (4 * 3 + 4 * 2).
-    /// let positions: Slice<[f32; 3]> = Slice::new(&data, 0, 1).unwrap();
+    /// let positions: Slice<[f32; 3]> = Slice::new(&data, 0, 1);
     ///
     /// // `uvs` slice starts at byte offset 4 * 3, and stride will be 20 bytes (4 * 3 + 4 * 2).
     /// let uvs: Slice<[f32; 2]> = Slice::new(&data, std::mem::size_of::<[f32; 3]>(), 1);
@@ -85,16 +85,16 @@ impl<'a, T: Pod> Slice<'a, T> {
     /// ```
     /// use strided_slice::Slice;
     ///
-    /// let data: &[u8] = get_data();
+    /// let data: [u8; 6] = [0_u8, 1, 2, 3, 4, 5];
     ///
     /// // Let's assume the array contains a serialized `Vertex` struct with a size of 20 bytes.
     /// let byte_stride = 20;
     ///
     /// // Slice starts at byte offset 0.
-    /// let positions: Slice<[f32; 3]> = Slice::new(&data, 0, byte_stride).unwrap();
+    /// let positions: Slice<[f32; 3]> = Slice::raw(&data, 0, byte_stride);
     ///
     /// // Slice starts at byte offset 4 * 3
-    /// let uvs: Slice<[f32; 2]> = Slice::try_new(&data, std::mem::size_of::<[f32; 3]>(), byte_stride);
+    /// let uvs: Slice<[f32; 2]> = Slice::raw(&data, std::mem::size_of::<[f32; 3]>(), byte_stride);
     /// ```
     ///
     /// ## Panics

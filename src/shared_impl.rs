@@ -7,10 +7,12 @@ use std::{any::TypeId, marker::PhantomData};
 pub enum SliceError {
     /// Provided offset is out of bounds regarding the slice size, e.g.,
     ///
-    /// ```rust
-    /// let data: Vec<u32> = [];
+    /// ```rust,should_panic
+    /// use strided_slice::{Slice};
+    ///
+    /// let data: Vec<u32> = Vec::new();
     /// // Panics, since the slice doesn't have a size of at least 16 bytes.
-    /// let slice: Slice<u16> = Slice::new(&data, 16, 1);
+    /// let slice: Slice<u32> = Slice::new(&data, 16, 1);
     /// ```
     OffsetOutOfBounds {
         size: usize,
@@ -18,8 +20,10 @@ pub enum SliceError {
     },
     /// Sliced attribute byte size is bigger than the stride, e.g.,
     ///
-    /// ```rust
-    /// let data: Vec<u16> = [0, 1, 2];
+    /// ```rust,should_panic
+    /// use strided_slice::{Slice};
+    ///
+    /// let data: Vec<u16> = [0_u16, 1, 2];
     /// // Panics, since the slice have a stride of 1 * std::mem::size_of::<u16>(),
     /// // but the requested attribute has size std::mem::size_of::<u32>().
     /// let slice: Slice<u32> = Slice::new(&data, 16, 1);

@@ -6,19 +6,28 @@
 /// ## Example
 ///
 /// ```rust
+/// use strided_slice::slice_attr;
+///
+/// #[repr(C)]
+/// #[derive(Clone, Copy, Default, bytemuck::Pod, bytemuck::Zeroable)]
+/// struct Vertex {
+///     position: [f32; 3],
+///     uv: [f32; 2],
+/// }
+///
 /// let vertices = [
 ///     Vertex {position: [1.0, 0.5, 1.0], uv: [1.0, 1.0]},
 ///     Vertex {position: [1.0, 1.0, 0.5], uv: [0.0, 1.0]},
 /// ];
-/// let positions = slice_attr!(&vertices, [0].position); // 2 positions
-/// let uvs = slice_attr!(&vertices, [1].uv); // 1 uv
+/// let positions = slice_attr!(vertices, [0].position); // 2 positions
+/// let uvs = slice_attr!(vertices, [1].uv); // 1 uv
 /// ```
 ///
 /// The stride, in element count, can be passed as a first argument:
 ///
 /// ```rust
 /// // Stride of 2 vertex
-/// let positions = slice_attr!(2, &vertices, [0].position);
+/// let positions = slice_attr!(2, vertices, [0].position);
 /// ````
 #[macro_export]
 macro_rules! slice_attr {
@@ -43,12 +52,21 @@ macro_rules! slice_attr {
 /// ## Example
 ///
 /// ```rust
+/// use strided_slice::{slice, Slice};
+///
+/// #[repr(C)]
+/// #[derive(Clone, Copy, Default, bytemuck::Pod, bytemuck::Zeroable)]
+/// struct Vertex {
+///     position: [f32; 3],
+///     uv: [f32; 2],
+/// }
+///
 /// let vertices = [
 ///     Vertex {position: [1.0, 0.5, 1.0], uv: [1.0, 1.0]},
 ///     Vertex {position: [1.0, 1.0, 0.5], uv: [0.0, 1.0]},
 /// ];
 /// // Only slice the x-axis positions
-/// let x_positions: Slice<f32> = slice!(&vertices, [0].position[0]);
+/// let x_positions: Slice<f32> = slice!(vertices, [0].position[0]);
 /// ```
 #[macro_export]
 macro_rules! slice {
