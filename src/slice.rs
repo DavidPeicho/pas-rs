@@ -1,9 +1,9 @@
 use bytemuck::Pod;
 use std::{fmt::Debug, marker::PhantomData, num::NonZeroUsize, ops::Deref};
 
-use crate::shared_impl::{impl_iterator, SliceData, SliceError};
+use crate::shared_impl::{impl_iterator, SliceBase};
 
-/// Immutable slice with custom byte stride.
+/// Immutable slice with custom stride and start byte offset.
 ///
 /// # Example
 ///
@@ -12,7 +12,7 @@ use crate::shared_impl::{impl_iterator, SliceData, SliceError};
 /// ```
 /// use strided_slice::Slice;
 /// let array = [1.0, 2.0, 3.0];
-/// let slice: Slice<f32> = Slice::new(&array, 0);
+/// let slice: Slice<f64> = Slice::new(&array, 0, 1);
 /// ```
 ///
 /// # Important Notes
@@ -20,7 +20,7 @@ use crate::shared_impl::{impl_iterator, SliceData, SliceError};
 /// - The struct transmust without checking endianness
 #[derive(Clone, Copy)]
 pub struct Slice<'a, T: Pod> {
-    inner: SliceData<T>,
+    inner: SliceBase<T>,
     _phantom: PhantomData<&'a T>,
 }
 
@@ -31,7 +31,7 @@ impl<'a, T: Pod + Debug> std::fmt::Debug for Slice<'a, T> {
 }
 
 impl<'a, T: Pod> Slice<'a, T> {
-    /// Try to create a strided slice starting at the byte offset `offset`.
+    /// Create a strided slice starting at the byte offset `offset`.
     ///
     /// - `offset` represents the byte offset in `V` to start from and **must** be less than
     ///   the size of `V`
@@ -67,27 +67,23 @@ impl<'a, T: Pod> Slice<'a, T> {
     /// // `uvs` slice starts at byte offset 4 * 3, and stride will be 20 bytes (4 * 3 + 4 * 2).
     /// let uvs: Slice<[f32; 2]> = Slice::try_new(&data, 1, std::mem::size_of::<[f32; 3]>()).unwrap();
     /// ```
-    pub fn new<V: Pod>(data: &'a [V], elt_stride: usize, byte_offset: usize) -> Self {
+    ///
+    /// ## Panics
+    ///
+    /// TODO
+    pub fn new<V: Pod>(data: &'a [V], byte_offset: usize, elt_stride: usize) -> Self {
         Self {
-            inner: SliceData::new_typed(data, byte_offset, elt_stride).unwrap(),
+            inner: SliceBase::new_typed(data, byte_offset, elt_stride).unwrap(),
             _phantom: PhantomData,
         }
     }
 
     // @todo: Non-Zero stride
-    pub fn try_raw(
-        data: &'a [u8],
-        offset: usize,
-        stride: NonZeroUsize,
-    ) -> Result<Self, SliceError> {
-        Ok(Self {
-            inner: SliceData::new(data.as_ptr_range(), offset, stride.get(), data.len())?,
-            _phantom: PhantomData,
-        })
-    }
-
     pub fn raw(data: &'a [u8], offset: usize, stride: NonZeroUsize) -> Self {
-        Self::try_raw(data, offset, stride).unwrap()
+        Self {
+            inner: SliceBase::new(data.as_ptr_range(), offset, stride.get(), data.len()).unwrap(),
+            _phantom: PhantomData,
+        }
     }
 
     pub fn iter(&'a self) -> SliceIterator<'a, T> {
@@ -96,7 +92,7 @@ impl<'a, T: Pod> Slice<'a, T> {
 }
 
 impl<'a, Attr: Pod> Deref for Slice<'a, Attr> {
-    type Target = SliceData<Attr>;
+    type Target = SliceBase<Attr>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner

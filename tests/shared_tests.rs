@@ -57,13 +57,6 @@ macro_rules! tests {
         }
 
         #[test]
-        fn [<from_raw_part_invalid_stride_$name>]() {
-            let data: Vec<u8> = vec![0, 200, 100, 255];
-            let error = $slice::<f32>::try_raw(&data, 8, NonZeroUsize::new(100).unwrap()).unwrap_err();
-            assert_eq!(error, SliceError::StrideOutOfBounds);
-        }
-
-        #[test]
         fn [<strided_$name>]() {
             let data: [f32; 12] = [
                 1.0, 1.0, 1.0, // position
