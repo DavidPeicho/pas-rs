@@ -1,5 +1,5 @@
 use bytemuck::Pod;
-use std::{marker::PhantomData, num::NonZeroUsize, ops::Deref};
+use std::{fmt::Debug, marker::PhantomData, num::NonZeroUsize, ops::Deref};
 
 use crate::shared_impl::{impl_iterator, SliceData, SliceError};
 
@@ -11,43 +11,19 @@ pub struct SliceMut<'a, T: Pod> {
     _phantom: PhantomData<&'a mut T>,
 }
 
-impl<'a, T: Pod> std::fmt::Debug for SliceMut<'a, T> {
+impl<'a, T: Pod + Debug> std::fmt::Debug for SliceMut<'a, T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "SliceMut({})", self.len())
+        f.debug_list().entries(self.iter()).finish()
     }
 }
 
 impl<'a, T: Pod> SliceMut<'a, T> {
-    /// Mutable version of [`Slice::try_new()`].
-    pub fn try_new<V: Pod>(data: &'a [V], byte_offset: usize) -> Result<Self, SliceError> {
-        Ok(Self {
-            inner: SliceData::new_typed(data, byte_offset, 1)?,
+    /// Mutable version of [`Slice::new()`].
+    pub fn new<V: Pod>(data: &'a mut [V], elt_stride: usize, byte_offset: usize) -> Self {
+        Self {
+            inner: SliceData::new_typed(data, byte_offset, elt_stride).unwrap(),
             _phantom: PhantomData,
-        })
-    }
-
-    /// Wrapper around [`Self::try_new()`].
-    pub fn new<V: Pod>(data: &'a [V], byte_offset: usize) -> Self {
-        Self::try_new(data, byte_offset).unwrap()
-    }
-
-    /// Similar to [`Self::try_new()`], but allows to pass a number of elements for the stride.
-    ///
-    /// Note: The stride is expressed in **count** of elements, and **not** in bytes.
-    pub fn try_strided<V: Pod>(
-        data: &'a [V],
-        byte_offset: usize,
-        elt_stride: NonZeroUsize,
-    ) -> Result<Self, SliceError> {
-        Ok(Self {
-            inner: SliceData::new_typed(data, byte_offset, elt_stride.get())?,
-            _phantom: PhantomData,
-        })
-    }
-
-    /// Wrapper around [`Self::try_strided()`].
-    pub fn strided<V: Pod>(data: &'a [V], byte_offset: usize, elt_stride: NonZeroUsize) -> Self {
-        Self::try_strided(data, byte_offset, elt_stride).unwrap()
+        }
     }
 
     // @todo: Non-Zero stride
@@ -56,9 +32,8 @@ impl<'a, T: Pod> SliceMut<'a, T> {
         offset: usize,
         stride: NonZeroUsize,
     ) -> Result<Self, SliceError> {
-        let ptr = data.as_ptr().cast::<u8>();
         Ok(Self {
-            inner: SliceData::new(ptr, offset, stride.get(), data.len())?,
+            inner: SliceData::new(data.as_ptr_range(), offset, stride.get(), data.len())?,
             _phantom: PhantomData,
         })
     }
@@ -113,6 +88,13 @@ impl<'a, T: Pod> SliceMut<'a, T> {
     pub fn iter(&'a self) -> SliceMutIterator<'a, T> {
         SliceMutIterator::new(self)
     }
+
+    pub fn test<V: Pod>(data: &'a mut [V], elt_stride: usize, t: &mut T) -> SliceMut<'a, T> {
+        let r = &t;
+        let ptr = r as *const _ as *const u8;
+        let offset = (ptr as usize).checked_sub(data.as_ptr() as usize).unwrap();
+        Self::new(data, elt_stride, offset)
+    }
 }
 
 impl<'a, Attr: Pod> Deref for SliceMut<'a, Attr> {
@@ -147,6 +129,7 @@ where
 /// Iterator
 ///
 
+#[derive(Clone, Copy)]
 pub struct SliceMutIterator<'a, T: Pod> {
     start: *const u8,
     end: *const u8,
