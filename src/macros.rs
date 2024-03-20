@@ -21,19 +21,25 @@ pub fn get_byte_offset<V: Sized>(data: &[V], start: *const u8) -> usize {
     end.checked_sub(data.as_ptr() as usize).unwrap()
 }
 
-pub struct AttributeSliceBuilder<Attr: Pod>(*const Attr);
+pub struct AttributeSliceBuilder<Attr: Pod> {
+    start: *const Attr,
+    elt_stride: usize,
+}
 
 impl<Attr: Pod> AttributeSliceBuilder<Attr> {
-    pub fn new(elt: &Attr) -> Self {
-        Self(elt as *const Attr)
+    pub fn new(start: &Attr, elt_stride: usize) -> Self {
+        Self {
+            start: start as *const Attr,
+            elt_stride,
+        }
     }
     pub fn build<'a, V: Pod>(&self, data: &'a [V]) -> Slice<'a, Attr> {
-        let byte_offset = get_byte_offset(data, self.0 as *const u8);
-        Slice::new(data, 1, byte_offset)
+        let byte_offset = get_byte_offset(data, self.start as *const u8);
+        Slice::new(data, self.elt_stride, byte_offset)
     }
     pub fn build_mut<'a, V: Pod>(&self, data: &'a mut [V]) -> SliceMut<'a, Attr> {
-        let byte_offset = get_byte_offset(data, self.0 as *const u8);
-        SliceMut::new(data, 1, byte_offset)
+        let byte_offset = get_byte_offset(data, self.start as *const u8);
+        SliceMut::new(data, self.elt_stride, byte_offset)
     }
 }
 
@@ -52,15 +58,25 @@ impl<Attr: Pod> AttributeSliceBuilder<Attr> {
 /// let positions = slice_attr!(&vertices, [0].position); // 2 positions
 /// let uvs = slice_attr!(&vertices, [1].uv); // 1 uv
 /// ```
+///
+/// The stride, in element count, can be passed as a first argument:
+///
+/// ```rust
+/// // Stride of 2 vertex
+/// let positions = slice_attr!(2, &vertices, [0].position);
+/// ````
 #[macro_export]
 macro_rules! slice_attr {
-    ($data:expr, [$index:expr].$( $rest:ident ).*) => {
+    ($stride:expr, $data:expr, $( $rest:tt )*) => {
         {
             use strided_slice::AttributeSliceBuilder;
 
-            let r = &($data[$index].$($rest).*);
-            AttributeSliceBuilder::new(r).build(&$data)
+            let r = &($data$($rest)*);
+            AttributeSliceBuilder::new(r, $stride).build(&$data)
         }
+    };
+    ($data:expr, $( $rest:tt )*) => {
+        slice_attr!(1, $data, $($rest)*)
     };
 }
 
@@ -81,39 +97,48 @@ macro_rules! slice_attr {
 /// ```
 #[macro_export]
 macro_rules! slice {
-    ($data:expr, [$index:expr].$( $rest:ident ).*) => {
+    ($stride:expr, $data:expr, $( $rest:tt )*) => {
         {
             use strided_slice::get_byte_offset;
 
-            let r = &($data[$index].$($rest).*);
+            let r = &($data$($rest)*);
             let byte_offset = get_byte_offset(&$data, r as *const _ as *const u8);
-            Slice::new(&$data, 1, byte_offset)
+            Slice::new(&$data, $stride, byte_offset)
         }
+    };
+    ($data:expr, $( $rest:tt )*) => {
+        slice!(1, $data, $($rest)*)
     };
 }
 
 /// Similar to [`slice`], but for [`SliceMut`].
 #[macro_export]
 macro_rules! slice_mut {
-    ($data:expr, [$index:expr].$( $rest:ident ).*) => {
+    ($stride:expr, $data:expr, $( $rest:tt )*) => {
         {
             use strided_slice::get_byte_offset;
 
-            let r = &($data[$index].$($rest).*);
+            let r = &($data$($rest)*);
             let byte_offset = get_byte_offset(&$data, r as *const _ as *const u8);
             SliceMut::new(&mut $data, 1, byte_offset)
         }
+    };
+    ($data:expr, $( $rest:tt )*) => {
+        slice_mut!(1, $data, $($rest)*)
     };
 }
 
 /// Similar to [`slice_attr`], but for [`SliceMut`].
 #[macro_export]
 macro_rules! slice_attr_mut {
-    ($data:expr, [$index:expr].$( $rest:ident ).*) => {
+    ($stride:expr, $data:expr, $( $rest:tt )*) => {
         {
             use strided_slice::AttributeSliceBuilder;
             let r = &mut ($data[$index].$($rest).*);
-            AttributeSliceBuilder::new(r).build_mut(&mut $data)
+            AttributeSliceBuilder::new(r, $stride).build_mut(&mut $data)
         }
+    };
+    ($data:expr, $( $rest:tt )*) => {
+        slice_attr_mut!(1, $data, $($rest)*)
     };
 }

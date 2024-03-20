@@ -63,7 +63,30 @@ fn slice() {
     assert_eq!(slice.len(), 2);
     assert!(slice.iter().eq([5.0, 10.0].iter()));
 
+    let slice: Slice<f32> = slice!(vertices, [1].position[1]);
+    assert_eq!(slice.len(), 2);
+    assert!(slice.iter().eq([6.0, 11.0].iter()));
+
     let slice: Slice<f32> = slice!(vertices, [0].uv);
     assert_eq!(slice.len(), 3);
     assert!(slice.iter().eq([3.0, 8.0, 13.0].iter()));
 }
+
+#[test]
+fn slice_with_stride() {
+    let values = vec![0.0_f32, 1.0, 2.0, 3.0, 4.0, 5.0];
+
+    let expected_stride1 = [0.0_f32, 1.0, 2.0, 3.0, 4.0, 5.0];
+    let slice: Slice<f32> = slice!(1, values, [0]);
+    assert!(slice.iter().eq(expected_stride1.iter()));
+    let slice = slice_attr!(1, values, [0]);
+    assert!(slice.iter().eq(expected_stride1.iter()));
+
+    let expected_stride2 = [1.0_f32, 3.0, 5.0];
+    let slice: Slice<f32> = slice!(2, values, [1]);
+    assert!(slice.iter().eq(expected_stride2.iter()));
+    let slice = slice_attr!(2, values, [1]);
+    assert!(slice.iter().eq(expected_stride2.iter()));
+}
+
+// TODO: Test mut macro.
