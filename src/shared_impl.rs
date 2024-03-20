@@ -111,7 +111,7 @@ impl<Attr: Sized> SliceBase<Attr> {
                 attr: std::mem::size_of::<Attr>(),
                 stride,
             })
-        } else if offset >= bytes {
+        } else if offset > 0 && offset >= bytes {
             Err(SliceError::OffsetOutOfBounds {
                 size: bytes,
                 offset,

@@ -1,114 +1,115 @@
-use std::num::NonZeroUsize;
-use strided_slice::*;
+use std::borrow::{Borrow, BorrowMut};
+
+use strided_slice::{Slice, SliceMut};
 
 #[repr(C)]
-#[derive(Clone, Copy, Default, bytemuck::Pod, bytemuck::Zeroable)]
-struct Vertex {
-    position: [f32; 3],
-    uv: [f32; 2],
+#[derive(Clone, Copy, Debug, Default, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct Vertex {
+    pub position: [u32; 3],
+    pub uv: [u32; 2],
 }
 
-fn data() -> Vec<Vertex> {
+pub fn data() -> Vec<Vertex> {
     vec![
         Vertex {
-            position: [1.0, -1.0, 1.0],
-            uv: [0.25, 0.5],
+            position: [0, 1, 2],
+            uv: [3, 4],
         },
         Vertex {
-            position: [-1.0, 1.0, 0.0],
-            uv: [-1.0, 0.25],
+            position: [5, 6, 7],
+            uv: [8, 9],
+        },
+        Vertex {
+            position: [10, 11, 12],
+            uv: [13, 14],
         },
     ]
 }
 
+// Test for [`Slice`] and [`SliceMut`] as well as [`SliceIterator`] and [`SliceIteratorMut`].
 macro_rules! tests {
-    ($slice: ident, $name: ident) => { paste::expr! {
+    ($slice: ident, $name: ident, $borrow: ident) => { paste::expr! {
         #[test]
-        fn [<slice_count_$name>]() {
-            let vertices = data();
+        fn [<slice_len_$name>]() {
+            #[allow(unused_mut)]
+            let mut vertices = data();
 
-            let slice: $slice<f32> = $slice::new(&[] as &[f32], 0);
+            #[allow(unused_mut)]
+            let mut empty: Vec<u32> = Vec::new();
+            let slice: $slice<u32> = $slice::new(empty.$borrow(), 0, 1);
             assert_eq!(slice.len(), 0);
 
-            let slice: $slice<f32> = $slice::new(&vertices, 0);
-            assert_eq!(slice.len(), 2);
-
-            let slice: $slice<[f32; 2]> = $slice::new(&vertices, std::mem::size_of::<[f32; 3]>());
-            assert_eq!(slice.len(), 2);
-
-            let slice: $slice<[f32; 2]> =
-                $slice::new(&vertices[1..], std::mem::size_of::<[f32; 3]>());
-            assert_eq!(slice.len(), 1);
-
-            let positions: [f32; 3] = [1.0, 2.0, 3.0];
-            let slice: $slice<f32> = $slice::new(&positions, 0);
+            let slice: $slice<f32> = $slice::new(vertices.$borrow(), 0, 1);
             assert_eq!(slice.len(), 3);
 
-            let positions: [f32; 3] = [1.0, 2.0, 3.0];
-            let slice: $slice<f32> = $slice::new(&positions, 0);
+            let slice: $slice<[f32; 2]> = $slice::new(vertices.$borrow(), std::mem::size_of::<[f32; 3]>(), 1);
             assert_eq!(slice.len(), 3);
-        }
 
-        #[test]
-        fn [<from_raw_part_invalid_offset_$name>]() {
-            let data: Vec<u8> = vec![0, 200, 100];
-            let error = $slice::<f32>::try_raw(&data, 2, NonZeroUsize::new(3).unwrap()).unwrap_err();
-            assert_eq!(error, SliceError::OffsetOutOfBounds);
+            let slice: $slice<[f32; 2]> = $slice::new(vertices.$borrow(), std::mem::size_of::<[f32; 3]>(), 2);
+            assert_eq!(slice.len(), 2);
         }
 
         #[test]
         fn [<strided_$name>]() {
-            let data: [f32; 12] = [
-                1.0, 1.0, 1.0, // position
-                0.0, 1.0, 0.0, // normal
-                1.0, 1.0, -1.0, // position
-                0.0, 1.0, 0.0, // normal
+            #[allow(unused_mut)]
+            let mut data: [u32; 12] = [
+                1, 2, 3,
+                4, 5, 6,
+                7, 8, 9,
+                10, 11, 12,
             ];
-            let stride = NonZeroUsize::new(6).unwrap();
+            let stride: usize = 6;
 
-            let positions: $slice<[f32; 3]> = $slice::strided(&data, 0, stride);
-            assert_eq!(positions[0], [1.0_f32, 1.0, 1.0]);
-            assert_eq!(positions[1], [1.0_f32, 1.0, -1.0]);
+            let positions: $slice<[u32; 3]> = $slice::new(data.$borrow(), 0, stride);
+            assert!(positions.iter().eq([[1, 2, 3], [7, 8, 9]].iter()));
 
-            let normals: $slice<[f32; 3]> = $slice::strided(&data[3..], 0, stride);
-            assert_eq!(normals[0], [0.0_f32, 1.0, 0.0]);
-            assert_eq!(normals[1], [0.0_f32, 1.0, 0.0]);
+            let normals: $slice<[u32; 3]> = $slice::new(data.$borrow(), 3 * std::mem::size_of::<u32>(), stride);
+            assert!(normals.iter().eq([[4, 5, 6], [10, 11, 12]].iter()));
         }
 
         #[test]
         fn [<indexing_$name>]() {
-            let vertices = data();
-            let slice: $slice<[f32; 3]> = $slice::new(&vertices, 0);
-            assert_eq!(slice[0], [1.0, -1.0, 1.0]);
-            assert_eq!(slice[1], [-1.0, 1.0, 0.0]);
+            #[allow(unused_mut)]
+            let mut vertices = data();
+            let slice: $slice<[u32; 3]> = $slice::new(vertices.$borrow(), 0, 1);
+            assert_eq!(slice[0], [0, 1, 2]);
+            assert_eq!(slice[1], [5, 6, 7]);
 
-            let slice: $slice<[f32; 2]> =
-                $slice::new(&vertices[1..], std::mem::size_of::<[f32; 3]>());
-            assert_eq!(slice[0], [-1.0, 0.25]);
+            // Point to third uv
+            let slice: $slice<[u32; 2]> = $slice::new(vertices.$borrow(), 2 * std::mem::size_of::<Vertex>() + std::mem::size_of::<[f32; 3]>(), 1);
+            assert_eq!(slice[0], [13, 14]);
             assert_eq!(slice.get(1), None);
         }
 
         #[test]
         fn [<iter_$name>]() {
-            let vertices = data();
-            {
-                let slice: $slice<[f32; 3]> = $slice::new(&vertices, 0);
-                let mut iter = slice.iter();
-                assert_eq!(*iter.next().unwrap(), [1.0, -1.0, 1.0]);
-                assert_eq!(*iter.next().unwrap(), [-1.0, 1.0, 0.0]);
-                assert_eq!(iter.next(), None);
-            }
-            {
-                let slice: $slice<[f32; 2]> =
-                    $slice::new(&vertices, std::mem::size_of::<[f32; 3]>());
-                let mut iter = slice.iter();
-                assert_eq!(*iter.next().unwrap(), [0.25, 0.5]);
-                assert_eq!(*iter.next().unwrap(), [-1.0, 0.25]);
-                assert_eq!(iter.next(), None);
-            }
+            #[allow(unused_mut)]
+            let mut vertices = data();
+
+            let slice: $slice<[u32; 3]> = $slice::new(vertices.$borrow(), 0, 1);
+            let mut iter = slice.iter();
+            assert_eq!(*iter.next().unwrap(), [0, 1, 2]);
+            assert_eq!(*iter.next().unwrap(), [5, 6, 7]);
+            assert_eq!(*iter.next().unwrap(), [10, 11, 12]);
+            assert_eq!(iter.next(), None);
+
+            let slice: $slice<[u32; 2]> = $slice::new(vertices.$borrow(), std::mem::size_of::<[f32; 3]>(), 1);
+            let mut iter = slice.iter();
+            assert_eq!(*iter.next().unwrap(), [3, 4]);
+            assert_eq!(*iter.next().unwrap(), [8, 9]);
+            assert_eq!(*iter.next().unwrap(), [13, 14]);
+            assert_eq!(iter.next(), None);
+        }
+
+        #[test]
+        #[should_panic]
+        fn [<offset_larger_than_stride_$name>]() {
+            #[allow(unused_mut)]
+            let mut vertices = data();
+            let slice: $slice<[u32; 3]> = $slice::new(vertices.$borrow(), std::mem::size_of::<Vertex>(), 1);
         }
     }};
 }
 
-tests!(Slice, immutable);
-tests!(SliceMut, mutable);
+tests!(Slice, immutable, borrow);
+tests!(SliceMut, mutable, borrow_mut);

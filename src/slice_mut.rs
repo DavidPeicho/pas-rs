@@ -71,23 +71,8 @@ impl<'a, T: Pod> SliceMut<'a, T> {
         }
     }
 
-    pub fn len(&self) -> usize {
-        self.inner.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.inner.is_empty()
-    }
-
     pub fn iter(&'a self) -> SliceMutIterator<'a, T> {
         SliceMutIterator::new(self)
-    }
-
-    pub fn test<V: Pod>(data: &'a mut [V], elt_stride: usize, t: &mut T) -> SliceMut<'a, T> {
-        let r = &t;
-        let ptr = r as *const _ as *const u8;
-        let offset = (ptr as usize).checked_sub(data.as_ptr() as usize).unwrap();
-        Self::new(data, elt_stride, offset)
     }
 }
 

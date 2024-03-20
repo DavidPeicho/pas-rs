@@ -24,12 +24,6 @@ pub struct Slice<'a, T: Pod> {
     _phantom: PhantomData<&'a T>,
 }
 
-impl<'a, T: Pod + Debug> std::fmt::Debug for Slice<'a, T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_list().entries(self.iter()).finish()
-    }
-}
-
 impl<'a, T: Pod> Slice<'a, T> {
     /// Create a strided slice starting at the byte offset `offset`.
     ///
@@ -136,6 +130,12 @@ where
 
     fn index(&self, index: usize) -> &Self::Output {
         self.get(index).expect("index ouf of bounds")
+    }
+}
+
+impl<'a, T: Pod + Debug> std::fmt::Debug for Slice<'a, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_list().entries(self.iter()).finish()
     }
 }
 
