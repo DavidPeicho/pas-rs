@@ -99,7 +99,7 @@ macro_rules! slice_attr {
 macro_rules! slice {
     ($stride:expr, $data:expr, $( $rest:tt )*) => {
         {
-            use strided_slice::get_byte_offset;
+            use strided_slice::{Slice, get_byte_offset};
 
             let r = &($data$($rest)*);
             let byte_offset = get_byte_offset(&$data, r as *const _ as *const u8);
@@ -116,11 +116,11 @@ macro_rules! slice {
 macro_rules! slice_mut {
     ($stride:expr, $data:expr, $( $rest:tt )*) => {
         {
-            use strided_slice::get_byte_offset;
+            use strided_slice::{get_byte_offset, SliceMut};
 
             let r = &($data$($rest)*);
             let byte_offset = get_byte_offset(&$data, r as *const _ as *const u8);
-            SliceMut::new(&mut $data, byte_offset, 1)
+            SliceMut::new(&mut $data, byte_offset, $stride)
         }
     };
     ($data:expr, $( $rest:tt )*) => {
@@ -134,7 +134,7 @@ macro_rules! slice_attr_mut {
     ($stride:expr, $data:expr, $( $rest:tt )*) => {
         {
             use strided_slice::AttributeSliceBuilder;
-            let r = &mut ($data[$index].$($rest).*);
+            let r = &($data$($rest)*);
             AttributeSliceBuilder::new(r, $stride).build_mut(&mut $data)
         }
     };
