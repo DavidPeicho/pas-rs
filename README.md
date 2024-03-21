@@ -6,7 +6,9 @@ This crate allows you to:
 * Get a slice with a custom stride
 * Slice only a part of a struct
 
-⚠️ This crate relies on casting between byte types. This operation is obviously **endian dependant**. The crate doesn't provide a default mechanism to encode/decode types in big endian.
+⚠️ This crate relies on casting between different types:
+* This operation is **endian dependant**
+* No default mechanism to **encode**/**decode** types in **big endian** is provided
 
 ## Example
 
@@ -62,13 +64,10 @@ println!("{:?}", z_positions); // [1.0, 0.5]
 When slicing an array whose type information are known only at runtime, you can use `Slice`/`SliceMut`:
 
 ```rust, ignore
-// Slice starting at the byte offset `0`, with a stride of 1 element.
-let positions: Slice<[f32; 3]> = Slice::new(&vertices, 0, 1);
-// Slice starting at the byte offset `32`, with a stride of 1 element.
 let uv_byte_offset = std::mem::size_of::<Vertex>() + std::mem::size_of::<[f32; 3]>();
-let uvs: Slice<[f32; 3]> = Slice::new(&vertices, uv_byte_offset, 1);
 
-println!("{:?}", positions); // [[1.0, 0.5, 1.0], [1.0, 1.0, 0.5]]
+// Slice starting at the byte offset `32`, with a stride of 1 element.
+let uvs: Slice<[f32; 3]> = Slice::new(&vertices, uv_byte_offset, 1);
 println!("{:?}", uvs); // [[0.0, 1.0]]
 ```
 
