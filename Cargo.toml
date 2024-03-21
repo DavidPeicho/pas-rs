@@ -7,6 +7,7 @@ authors = ["David Peicho <david.peicho@gmail.com>"]
 readme = "README.md"
 homepage = "https://github.com/DavidPeicho/pas-rs"
 repository = "https://github.com/DavidPeicho/pas-rs"
+description = "Crate for strided slice"
 categories = ["data-structures"]
 keywords = ["data", "slice", "strided"]
 
