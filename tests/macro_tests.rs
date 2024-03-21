@@ -104,3 +104,13 @@ slice_attr_tests!(slice_attr);
 slice_attr_tests!(slice_attr_mut);
 slice_tests!(slice, Slice);
 slice_tests!(slice_mut, SliceMut);
+
+#[test]
+fn from_slice() {
+    let mut values: [u32; 6] = [0_u32, 1, 2, 3, 4, 5];
+
+    let _ = slice_attr!(&values, [0]);
+    let _: Slice<u32> = slice!(&values, [0]);
+    let _ = slice_attr!(&mut values, [0]);
+    let _: SliceMut<u32> = slice_mut!(&mut values, [0]);
+}

@@ -6,11 +6,11 @@ This crate allows you to:
 * Get a slice with a custom stride
 * Slice only a part of a struct
 
-⚠️ This crate relies on casting between different types:
+⚠️ This crate relies on casting between different types ⚠️
 * This operation is **endian dependant**
 * No default mechanism to **encode**/**decode** types in **big endian** is provided
 
-## Example
+## Examples
 
 ### Macros
 
@@ -36,10 +36,10 @@ fn main() {
 
     // Start slice at first vertex, pointing at `position`.
     let positions = slice_attr!(vertices, [0].position);
+    println!("{:?}", positions); // [[1.0, 0.5, 1.0], [1.0, 1.0, 0.5]]
+
     // Start slice at second vertex, pointing at `uv`.
     let uvs = slice_attr!(vertices, [1].uv);
-
-    println!("{:?}", positions); // [[1.0, 0.5, 1.0], [1.0, 1.0, 0.5]]
     println!("{:?}", uvs); // [[0.0, 1.0]]
 }
 ```
@@ -61,7 +61,7 @@ println!("{:?}", z_positions); // [1.0, 0.5]
 
 ### Slice and SliceMut
 
-When slicing an array whose type information are known only at runtime, you can use `Slice`/`SliceMut`:
+When slicing an array whose type information is known only at runtime, you can use `Slice`/`SliceMut`:
 
 ```rust, ignore
 let uv_byte_offset = std::mem::size_of::<Vertex>() + std::mem::size_of::<[f32; 3]>();
