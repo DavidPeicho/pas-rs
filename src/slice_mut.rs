@@ -5,7 +5,7 @@ use crate::shared_impl::{impl_iterator, SliceBase};
 
 /// Mutable slice
 ///
-/// For more information, have a look at the [`Slice`] type.
+/// For more information, have a look at the [`crate::Slice`] type.
 pub struct SliceMut<'a, T: Pod> {
     inner: SliceBase<T>,
     _phantom: PhantomData<&'a mut T>,
@@ -18,7 +18,7 @@ impl<'a, T: Pod + Debug> std::fmt::Debug for SliceMut<'a, T> {
 }
 
 impl<'a, T: Pod> SliceMut<'a, T> {
-    /// Mutable version of [`Slice::new()`].
+    /// Mutable version of [`crate::Slice::new()`].
     pub fn new<V: Pod>(data: &'a mut [V], byte_offset: usize, elt_stride: usize) -> Self {
         Self {
             inner: SliceBase::new_typed(data, byte_offset, elt_stride).unwrap(),
@@ -26,7 +26,7 @@ impl<'a, T: Pod> SliceMut<'a, T> {
         }
     }
 
-    /// Mutable version of [`Slice::raw()`].
+    /// Mutable version of [`crate::Slice::raw()`].
     pub fn raw(data: &'a [u8], byte_offset: usize, byte_stride: usize) -> Self {
         let inner =
             SliceBase::new(data.as_ptr_range(), byte_offset, byte_stride, data.len()).unwrap();

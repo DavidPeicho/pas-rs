@@ -1,3 +1,6 @@
+#![doc = include_str!("../README.md")]
+#![warn(missing_docs)]
+
 mod builder;
 mod macros;
 mod shared_impl;

@@ -80,23 +80,6 @@ impl<'a, T: Pod> Slice<'a, T> {
     /// This method will be useful when loading 3D models, with the data layout
     /// not known at compile time.
     ///
-    /// # Examples
-    ///
-    /// ```
-    /// use strided_slice::Slice;
-    ///
-    /// let data: [u8; 6] = [0_u8, 1, 2, 3, 4, 5];
-    ///
-    /// // Let's assume the array contains a serialized `Vertex` struct with a size of 20 bytes.
-    /// let byte_stride = 20;
-    ///
-    /// // Slice starts at byte offset 0.
-    /// let positions: Slice<[f32; 3]> = Slice::raw(&data, 0, byte_stride);
-    ///
-    /// // Slice starts at byte offset 4 * 3
-    /// let uvs: Slice<[f32; 2]> = Slice::raw(&data, std::mem::size_of::<[f32; 3]>(), byte_stride);
-    /// ```
-    ///
     /// ## Panics
     ///
     /// Panics in a similar way to [`Self::new`].

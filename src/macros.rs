@@ -23,11 +23,14 @@
 /// let uvs = slice_attr!(vertices, [1].uv); // 1 uv
 /// ```
 ///
-/// The stride, in element count, can be passed as a first argument:
+/// The stride, in **element count**, can be passed as a first argument:
 ///
 /// ```rust
-/// // Stride of 2 vertex
-/// let positions = slice_attr!(2, vertices, [0].position);
+/// use strided_slice::slice_attr;
+///
+/// let data = [0, 1, 2, 3, 4, 5, 6];
+/// let slice = slice_attr!(2, data, [0]);
+/// println!("{:?}", slice)
 /// ````
 #[macro_export]
 macro_rules! slice_attr {
@@ -44,7 +47,7 @@ macro_rules! slice_attr {
     };
 }
 
-/// Similar to [`slice_attr`].
+/// Similar to [`slice_attr!`].
 ///
 /// At the opposite of [`slice_attr`], this macro doesn't infer the slice generic.
 /// This allows to get a view on a type that has a smaller size than the target attribute.
@@ -84,7 +87,7 @@ macro_rules! slice {
     };
 }
 
-/// Similar to [`slice`], but for [`SliceMut`].
+/// Similar to [`slice!`], but for [`crate::SliceMut`].
 #[macro_export]
 macro_rules! slice_mut {
     ($stride:expr, $data:expr, $( $rest:tt )*) => {
@@ -101,7 +104,7 @@ macro_rules! slice_mut {
     };
 }
 
-/// Similar to [`slice_attr`], but for [`SliceMut`].
+/// Similar to [`slice_attr!`], but for [`crate::SliceMut`].
 #[macro_export]
 macro_rules! slice_attr_mut {
     ($stride:expr, $data:expr, $( $rest:tt )*) => {

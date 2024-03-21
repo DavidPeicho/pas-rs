@@ -2,10 +2,13 @@ use std::{any::TypeId, marker::PhantomData};
 
 /// Slice error
 ///
-/// An error is raised during when creating a slice via [`Slice::new`], or [`SliceMut::new`].
+/// An error is raised during when creating a slice via [`crate::Slice::new`],
+/// or [`crate::SliceMut::new`].
 #[derive(Copy, Clone, PartialEq)]
 pub enum SliceError {
-    /// Provided offset is out of bounds regarding the slice size, e.g.,
+    /// Provided offset is out of bounds regarding the slice size.
+    ///
+    /// ## Example
     ///
     /// ```rust,should_panic
     /// use strided_slice::{Slice};
@@ -14,16 +17,15 @@ pub enum SliceError {
     /// // Panics, since the slice doesn't have a size of at least 16 bytes.
     /// let slice: Slice<u32> = Slice::new(&data, 16, 1);
     /// ```
-    OffsetOutOfBounds {
-        size: usize,
-        offset: usize,
-    },
-    /// Sliced attribute byte size is bigger than the stride, e.g.,
+    OffsetOutOfBounds { size: usize, offset: usize },
+    /// Sliced attribute byte size is bigger than the stride.
+    ///
+    /// ## Example
     ///
     /// ```rust,should_panic
     /// use strided_slice::{Slice};
     ///
-    /// let data: Vec<u16> = [0_u16, 1, 2];
+    /// let data: Vec<u16> = vec!(0_u16, 1, 2);
     /// // Panics, since the slice have a stride of 1 * std::mem::size_of::<u16>(),
     /// // but the requested attribute has size std::mem::size_of::<u32>().
     /// let slice: Slice<u32> = Slice::new(&data, 16, 1);
@@ -33,10 +35,18 @@ pub enum SliceError {
         attr: usize,
         stride: usize,
     },
-    AlignmentFault {
-        type_id: TypeId,
-        offset: usize,
-    },
+    /// Attribute is not aligned to the request offset in the slice.
+    ///
+    /// ## Example
+    ///
+    /// ```rust,should_panic
+    /// use strided_slice::{Slice};
+    ///
+    /// let data: Vec<u8> = vec!(0_u8, 1, 2);
+    /// // Panics, since the offset will be unaligned
+    /// let slice: Slice<u32> = Slice::new(&data, 1, 1);
+    /// ```
+    AlignmentFault { type_id: TypeId, offset: usize },
 }
 
 impl std::fmt::Debug for SliceError {
@@ -72,8 +82,8 @@ impl std::fmt::Debug for SliceError {
 /// Slice base implementation.
 ///
 /// Do not use this type directly, instead:
-/// - Use the `slice_attr`, `slice_attr_mut`, `slice`, or `slice_mut` macros
-/// - Use the [`Slice`]/[`SliceMut`] types directly
+/// - Use the [`slice_attr`], [`slice_attr_mut`], [`slice`], or [`slice_mut`] macros
+/// - Use the [`Slice`] or [`SliceMut`] types
 #[derive(Clone, Copy)]
 pub struct SliceBase<Attr: Sized + 'static> {
     pub(crate) data: *const u8,
@@ -148,12 +158,24 @@ impl<Attr: Sized> SliceBase<Attr> {
         }
     }
 
+    /// Get the reference at index.
+    ///
+    /// ## Example
+    ///
+    /// ```rust
+    /// # use strided_slice::Slice;
+    ///
+    /// let data = [1, 2, 3, 4];
+    /// let slice: Slice<u32> = Slice::new(&data, 0, 1);
+    /// println!("{}", slice[0]); // Prints `1`
+    /// println!("{}", slice[3]); // Prints `3`
+    /// ```
     pub fn get(&self, index: usize) -> Option<&Attr> {
         self.get_ptr(index)
             .map(|ptr| unsafe { std::mem::transmute::<_, &Attr>(ptr) })
     }
 
-    /// Number of elements in the slice
+    /// Number of elements in the slice.
     pub fn len(&self) -> usize {
         (self.end as usize)
             .checked_sub(self.data as usize)
@@ -176,7 +198,9 @@ impl<Attr: Sized> SliceBase<Attr> {
         }
     }
 
-    /// Slice strides, in **bytes**
+    /// Slice stride.
+    ///
+    /// <div class="warning">The stride is not in **elements count**, but in **bytes**.</div>
     pub fn stride(&self) -> usize {
         self.stride
     }

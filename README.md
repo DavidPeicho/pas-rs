@@ -6,9 +6,13 @@ This crate allows you to:
 * Get a slice with a custom stride
 * Slice only a part of a struct
 
+⚠️ This crate relies on casting between byte types. This operation is obviously **endian dependant**. The crate doesn't provide a default mechanism to encode/decode types in big endian.
+
 ## Example
 
-### Using Macro
+### Macros
+
+#### With Type Inference
 
 Using `slice_attr!` to slice in a `struct` and automatically infer the type:
 
@@ -33,34 +37,44 @@ fn main() {
     // Start slice at second vertex, pointing at `uv`.
     let uvs = slice_attr!(vertices, [1].uv);
 
-    println!("Positions = {:?}", positions); // [[1.0, 0.5, 1.0], [1.0, 1.0, 0.5]]
-    println!("Texture Coordinates = {:?}", uvs); // [0.0, 1.0]
+    println!("{:?}", positions); // [[1.0, 0.5, 1.0], [1.0, 1.0, 0.5]]
+    println!("{:?}", uvs); // [[0.0, 1.0]]
 }
 ```
 
-Sometimes, it's useful to slice at a `struct` attribute, but with a smaller view type. In this case,
-you need to tell the compiler what the slice should be:
+#### Without Type Inference
+
+It can be useful to slice at a `struct` attribute, but with a smaller type:
 
 ```rust
-let x_positions: Slice<f32> = slice!(vertices, [0].position);
-println!("x-axis positions = {:?}", x_positions); // [1.0, 1.0]
+let x_positions: Slice<f32> = slice!(vertices, [0].position[0]);
+println!("{:?}", x_positions); // [1.0, 1.0]
 
 let y_positions: Slice<f32> = slice!(vertices, [0].position[1]);
-println!("y-axis positions = {:?}", y_positions); // [0.5, 1.0]
+println!("{:?}", y_positions); // [0.5, 1.0]
 
 let z_positions: Slice<f32> = slice!(vertices, [0].position[2]);
-println!("z-axis positions = {:?}", z_positions); // [1.0, 0.5]
+println!("{:?}", z_positions); // [1.0, 0.5]
 ```
 
-### Using Stride & Offset
+### Slice and SliceMut
 
-For runtime slicing, you can directly use `Slice` and `SliceMut`:
+When slicing an array whose type information are known only at runtime, you can use `Slice`/`SliceMut`:
 
 ```rust
-// todo
+// Slice starting at the byte offset `0`, with a stride of 1 element.
+let positions: Slice<[f32; 3]> = Slice::new(&vertices, 0, 1);
+// Slice starting at the byte offset `32`, with a stride of 1 element.
+let uv_byte_offset = std::mem::size_of::<Vertex>() + std::mem::size_of::<[f32; 3]>();
+let uvs = Slice<[f32; 3]> = Slice::new(&vertices, uv_byte_offset, 1);
+
+println!("{:?}", positions); // [[1.0, 0.5, 1.0], [1.0, 1.0, 0.5]]
+println!("{:?}", uvs); // [[0.0, 1.0]]
 ```
 
 ## Safety
 
 While this crate makes use of `unsafe` and `transmute`, it's (_mostly_) safe
 to use and comes with runtime checks preventing you to run into undefined behaviors.
+
+This crate relies requires for your types to implement the [Pod trait](https://docs.rs/bytemuck/latest/bytemuck/trait.Pod.html) from the (bytemuck crate)[https://docs.rs/bytemuck/latest/bytemuck/], improving safety with alignment rules, illegal bit patterns, etc...
