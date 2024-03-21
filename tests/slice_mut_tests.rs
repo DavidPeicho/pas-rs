@@ -1,7 +1,7 @@
 use strided_slice::SliceMut;
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Default, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Vertex {
     pub position: [u32; 3],
     pub uv: [u32; 2],

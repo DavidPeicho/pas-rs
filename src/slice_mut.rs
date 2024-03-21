@@ -36,6 +36,11 @@ impl<'a, Attr: Pod> SliceMut<'a, Attr> {
         }
     }
 
+    /// Create a mutable slice where the stride is the same as the attribute size.
+    pub fn native(data: &'a mut [Attr]) -> Self {
+        Self::new(data, 0, 1)
+    }
+
     /// Mutable version of [`crate::Slice::get()`].
     pub fn get_mut(&mut self, index: usize) -> Option<&mut Attr> {
         self.inner
@@ -103,6 +108,10 @@ impl<'a, Attr: Pod> SliceMut<'a, Attr> {
     }
 }
 
+///
+/// Traits implementation
+///
+
 impl<'a, Attr: Pod> Deref for SliceMut<'a, Attr> {
     type Target = SliceBase<Attr>;
 
@@ -128,6 +137,12 @@ where
 {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.get_mut(index).expect("index ouf of bounds")
+    }
+}
+
+impl<'a, Attr: Pod> From<&'a mut [Attr]> for SliceMut<'a, Attr> {
+    fn from(item: &'a mut [Attr]) -> Self {
+        SliceMut::native(item)
     }
 }
 

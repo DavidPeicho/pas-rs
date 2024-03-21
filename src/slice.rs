@@ -92,6 +92,11 @@ impl<'a, T: Pod> Slice<'a, T> {
         }
     }
 
+    /// Create a slice where the stride is the same as the attribute size.
+    pub fn native(data: &'a [T]) -> Self {
+        Self::new(data, 0, 1)
+    }
+
     /// Create a [`SliceIterator`] for this slice.
     ///
     /// ### Example
@@ -107,6 +112,10 @@ impl<'a, T: Pod> Slice<'a, T> {
         SliceIterator::new(self)
     }
 }
+
+///
+/// Traits implementation
+///
 
 impl<'a, Attr: Pod> Deref for Slice<'a, Attr> {
     type Target = SliceBase<Attr>;
@@ -124,6 +133,12 @@ where
 
     fn index(&self, index: usize) -> &Self::Output {
         self.get(index).expect("index ouf of bounds")
+    }
+}
+
+impl<'a, Attr: Pod> From<&'a [Attr]> for Slice<'a, Attr> {
+    fn from(item: &'a [Attr]) -> Self {
+        Slice::native(item)
     }
 }
 
