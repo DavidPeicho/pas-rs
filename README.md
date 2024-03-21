@@ -1,8 +1,8 @@
-# strided-slice-rs
+# pas-rs
 
-Crate for slicing stuff! Especially strided data.
+_Pas_ (\pa\), which means "step" in French, is a crate for slicing stuff, especially strided data.
 
-This crate allows you to:
+With _Pas_ allows you to:
 * Get a slice with a custom stride
 * Slice only a part of a struct
 
@@ -20,7 +20,7 @@ This crate allows you to:
 Using `slice_attr!` to slice in a `struct` and automatically infer the type:
 
 ```rust
-use strided_slice::{slice, slice_attr};
+use pas::{slice, slice_attr};
 
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
@@ -77,7 +77,7 @@ println!("{:?}", uvs); // [[0.0, 1.0]]
 It's possible to use a custom stride, in elements count:
 
 ```rust
-use strided_slice::{slice_attr, Slice};
+use pas::{slice_attr, Slice};
 
 let data: [u32; 5] = [0, 1, 2, 3, 4];
 

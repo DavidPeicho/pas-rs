@@ -57,7 +57,7 @@ impl<'a, Attr: Pod> SliceMut<'a, Attr> {
     /// ## Examples
     ///
     /// ```rust
-    /// use strided_slice::SliceMut;
+    /// use pas::SliceMut;
     ///
     /// let mut dest = [0_u32, 0, 0, 0];
     /// let slice: SliceMut<u32> = SliceMut::new(&mut dest, 0, 1);

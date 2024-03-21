@@ -10,7 +10,7 @@ use crate::shared_impl::{impl_iterator, SliceBase};
 /// Creating a slice with a stride equal to the element size:
 ///
 /// ```
-/// use strided_slice::Slice;
+/// use pas::Slice;
 /// let array = [1.0, 2.0, 3.0];
 /// let slice: Slice<f64> = Slice::new(&array, 0, 1);
 /// ```
@@ -35,7 +35,7 @@ impl<'a, T: Pod> Slice<'a, T> {
     /// # Examples
     ///
     /// ```
-    /// use strided_slice::Slice;
+    /// use pas::Slice;
     ///
     /// #[repr(C)]
     /// #[derive(Clone, Copy, Default, bytemuck::Pod, bytemuck::Zeroable)]
@@ -102,7 +102,7 @@ impl<'a, T: Pod> Slice<'a, T> {
     /// ### Example
     ///
     /// ```rust
-    /// use strided_slice::Slice;
+    /// use pas::Slice;
     ///
     /// let data = [0, 1, 2, 3];
     /// let slice: Slice<u32> = Slice::new(&data, 0, 1);

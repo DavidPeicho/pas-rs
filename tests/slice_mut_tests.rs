@@ -1,4 +1,4 @@
-use strided_slice::SliceMut;
+use pas::SliceMut;
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]

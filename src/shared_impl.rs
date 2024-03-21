@@ -11,7 +11,7 @@ pub enum SliceError {
     /// ## Example
     ///
     /// ```rust,should_panic
-    /// use strided_slice::{Slice};
+    /// use pas::{Slice};
     ///
     /// let data: Vec<u32> = Vec::new();
     /// // Panics, since the slice doesn't have a size of at least 16 bytes.
@@ -28,7 +28,7 @@ pub enum SliceError {
     /// ## Example
     ///
     /// ```rust,should_panic
-    /// use strided_slice::{Slice};
+    /// use pas::{Slice};
     ///
     /// let data: Vec<u16> = vec!(0_u16, 1, 2);
     /// // Panics, since the slice have a stride of 1 * std::mem::size_of::<u16>(),
@@ -48,7 +48,7 @@ pub enum SliceError {
     /// ## Example
     ///
     /// ```rust,should_panic
-    /// use strided_slice::{Slice};
+    /// use pas::{Slice};
     ///
     /// let data: Vec<u8> = vec!(0_u8, 1, 2);
     /// // Panics, since the offset will be unaligned
@@ -165,7 +165,7 @@ impl<Attr: Sized> SliceBase<Attr> {
     /// ## Example
     ///
     /// ```rust
-    /// # use strided_slice::Slice;
+    /// # use pas::Slice;
     ///
     /// let data = [1, 2, 3, 4];
     /// let slice: Slice<u32> = Slice::new(&data, 0, 1);
