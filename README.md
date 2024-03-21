@@ -17,10 +17,10 @@ This crate allows you to:
 Using `slice_attr!` to slice in a `struct` and automatically infer the type:
 
 ```rust
-use strided_slice::slice;
+use strided_slice::{slice, slice_attr};
 
 #[repr(C)]
-#[derive(bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 struct Vertex {
     pub position: [f32; 3],
     pub uv: [f32; 2],
@@ -46,7 +46,7 @@ fn main() {
 
 It can be useful to slice at a `struct` attribute, but with a smaller type:
 
-```rust
+```rust,ignore
 let x_positions: Slice<f32> = slice!(vertices, [0].position[0]);
 println!("{:?}", x_positions); // [1.0, 1.0]
 
@@ -61,12 +61,12 @@ println!("{:?}", z_positions); // [1.0, 0.5]
 
 When slicing an array whose type information are known only at runtime, you can use `Slice`/`SliceMut`:
 
-```rust
+```rust, ignore
 // Slice starting at the byte offset `0`, with a stride of 1 element.
 let positions: Slice<[f32; 3]> = Slice::new(&vertices, 0, 1);
 // Slice starting at the byte offset `32`, with a stride of 1 element.
 let uv_byte_offset = std::mem::size_of::<Vertex>() + std::mem::size_of::<[f32; 3]>();
-let uvs = Slice<[f32; 3]> = Slice::new(&vertices, uv_byte_offset, 1);
+let uvs: Slice<[f32; 3]> = Slice::new(&vertices, uv_byte_offset, 1);
 
 println!("{:?}", positions); // [[1.0, 0.5, 1.0], [1.0, 1.0, 0.5]]
 println!("{:?}", uvs); // [[0.0, 1.0]]
