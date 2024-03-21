@@ -41,7 +41,7 @@ impl<'a, Attr: Pod> SliceMut<'a, Attr> {
         Self::new(data, 0, 1)
     }
 
-    /// Mutable version of [`crate::Slice::get()`].
+    /// Mutable version of [`crate::SliceBase::get()`].
     pub fn get_mut(&mut self, index: usize) -> Option<&mut Attr> {
         self.inner
             .get_ptr(index)

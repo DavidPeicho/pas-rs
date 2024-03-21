@@ -7,6 +7,7 @@ This crate allows you to:
 * Slice only a part of a struct
 
 ⚠️ This crate relies on casting between different types ⚠️
+
 * This operation is **endian dependant**
 * No default mechanism to **encode**/**decode** types in **big endian** is provided
 
@@ -71,9 +72,9 @@ let uvs: Slice<[f32; 3]> = Slice::new(&vertices, uv_byte_offset, 1);
 println!("{:?}", uvs); // [[0.0, 1.0]]
 ```
 
-## Custom Stride
+#### Custom Stride
 
-It's possible to use a custom stride, in **element count**:
+It's possible to use a custom stride, in elements count:
 
 ```rust
 use strided_slice::{slice_attr, Slice};

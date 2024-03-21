@@ -92,12 +92,11 @@ impl std::fmt::Debug for SliceError {
     }
 }
 
-#[doc(hidden)]
 /// Slice base implementation.
 ///
 /// Do not use this type directly, instead:
-/// - Use the [`slice_attr`], [`slice_attr_mut`], [`slice`], or [`slice_mut`] macros
-/// - Use the [`Slice`] or [`SliceMut`] types
+/// - Use the [`crate::slice_attr!`], [`crate::slice_attr_mut!`], [`crate::slice!`], or [`crate::slice_mut!`] macros
+/// - Use the [`crate::Slice`] or [`crate::SliceMut`] types
 #[derive(Clone, Copy)]
 pub struct SliceBase<Attr: Sized + 'static> {
     /// Start pointer, pointing on the first byte of the slice.
