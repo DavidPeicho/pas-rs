@@ -71,6 +71,24 @@ let uvs: Slice<[f32; 3]> = Slice::new(&vertices, uv_byte_offset, 1);
 println!("{:?}", uvs); // [[0.0, 1.0]]
 ```
 
+## Custom Stride
+
+It's possible to use a custom stride, in **element count**:
+
+```rust
+use strided_slice::{slice_attr, Slice};
+
+let data: [u32; 5] = [0, 1, 2, 3, 4];
+
+// Using the macro, the stride appears first
+let slice = slice_attr!(2, data, [0]);
+println!("{:?}", slice); // [0, 2, 4]
+
+// Specified as the last argument when using `Slice`/`SliceMut`
+let slice: Slice<u32> = Slice::new(&data, 0, 3);
+println!("{:?}", slice); // [0, 3]
+```
+
 ## Safety
 
 While this crate makes use of `unsafe` and `transmute`, it's (_mostly_) safe
