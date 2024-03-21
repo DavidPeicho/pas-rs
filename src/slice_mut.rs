@@ -6,18 +6,18 @@ use crate::shared_impl::{impl_iterator, SliceBase};
 /// Mutable slice
 ///
 /// For more information, have a look at the [`crate::Slice`] type.
-pub struct SliceMut<'a, T: Pod> {
-    inner: SliceBase<T>,
-    _phantom: PhantomData<&'a mut T>,
+pub struct SliceMut<'a, Attr: Pod> {
+    inner: SliceBase<Attr>,
+    _phantom: PhantomData<&'a mut Attr>,
 }
 
-impl<'a, T: Pod + Debug> std::fmt::Debug for SliceMut<'a, T> {
+impl<'a, Attr: Pod + Debug> std::fmt::Debug for SliceMut<'a, Attr> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_list().entries(self.iter()).finish()
     }
 }
 
-impl<'a, T: Pod> SliceMut<'a, T> {
+impl<'a, Attr: Pod> SliceMut<'a, Attr> {
     /// Mutable version of [`crate::Slice::new()`].
     pub fn new<V: Pod>(data: &'a mut [V], byte_offset: usize, elt_stride: usize) -> Self {
         Self {
@@ -36,24 +36,50 @@ impl<'a, T: Pod> SliceMut<'a, T> {
         }
     }
 
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
+    /// Mutable version of [`crate::Slice::get()`].
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut Attr> {
         self.inner
             .get_ptr(index)
-            .map(|ptr| unsafe { std::mem::transmute::<_, &mut T>(ptr) })
+            .map(|ptr| unsafe { std::mem::transmute::<_, &mut Attr>(ptr) })
     }
 
-    pub fn copy_from_slice<V: Pod>(&self, other_data: &[V]) {
+    /// Copies all elements from `src`` into `self``, using a memcpy.
+    ///
+    /// At the opposite of the std `copy_from_slice`:
+    /// * The length of `src` **doesn't** need to match the length of `self`
+    /// * The `src` parameter can contain elements whose byte-size is smaller than `Attr`
+    ///
+    /// ## Examples
+    ///
+    /// ```rust
+    /// use strided_slice::SliceMut;
+    ///
+    /// let mut dest = [0_u32, 0, 0, 0];
+    /// let slice: SliceMut<u32> = SliceMut::new(&mut dest, 0, 1);
+    ///
+    /// slice.copy_from_slice(&[1_u8, 2]);
+    /// println!("{:?}", slice); // Prints `[1, 2]`
+    ///
+    /// slice.copy_from_slice(&[3_u8, 4, 5, 6]);
+    /// println!("{:?}", slice); // Prints `[3, 4, 5, 6]`
+    /// ```
+    ///
+    /// ## Panics
+    ///
+    /// * Panics if the length of `src` is bigger than the length of `self`
+    /// * Panics if the `src` inner format is bigger than the slice attribute format
+    pub fn copy_from_slice<V: Pod>(&self, src: &[V]) {
         let other_stride = std::mem::size_of::<V>();
         // @todo: Checking the size at compile time would be nice.
         assert!(
-            other_stride <= std::mem::size_of::<T>(),
+            other_stride <= std::mem::size_of::<Attr>(),
             "`data` type is {} bytes, but slice format expected at most {} bytes",
             std::mem::size_of::<V>(),
-            std::mem::size_of::<T>()
+            std::mem::size_of::<Attr>()
         );
 
         let count = self.len();
-        let other_count = other_data.len();
+        let other_count = src.len();
         assert!(
             other_count <= count,
             "`data` too large. Found slice with {} elements, but expected at most {}",
@@ -61,7 +87,7 @@ impl<'a, T: Pod> SliceMut<'a, T> {
             count
         );
 
-        let bytes: &[u8] = bytemuck::cast_slice(other_data);
+        let bytes: &[u8] = bytemuck::cast_slice(src);
         for i in 0..other_count {
             let ptr = self.inner.get_ptr(i).unwrap() as *mut u8;
             let other_ptr = unsafe { bytes.as_ptr().add(i * other_stride) };
@@ -71,7 +97,8 @@ impl<'a, T: Pod> SliceMut<'a, T> {
         }
     }
 
-    pub fn iter(&'a self) -> SliceMutIterator<'a, T> {
+    /// Create a [`SliceMutIterator`] for this slice.
+    pub fn iter(&'a self) -> SliceMutIterator<'a, Attr> {
         SliceMutIterator::new(self)
     }
 }
@@ -108,6 +135,7 @@ where
 /// Iterator
 ///
 
+/// Iterator for the [`SliceMut`] type.
 #[derive(Clone, Copy)]
 pub struct SliceMutIterator<'a, T: Pod> {
     start: *const u8,
@@ -120,8 +148,8 @@ impl<'a, T: Pod> SliceMutIterator<'a, T> {
     fn new(slice: &'a SliceMut<'a, T>) -> Self {
         let data = slice.inner;
         Self {
-            start: data.start(),
-            end: data.end(),
+            start: data.start,
+            end: data.end,
             stride: data.stride(),
             _phantom_data: PhantomData,
         }

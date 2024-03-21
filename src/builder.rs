@@ -2,6 +2,7 @@ use bytemuck::Pod;
 
 use crate::{Slice, SliceMut};
 
+#[doc(hidden)]
 /// Get the offset between the start of a slice and a pointer.
 ///
 /// # Panics
@@ -21,6 +22,11 @@ pub fn get_byte_offset<V: Sized>(data: &[V], start: *const u8) -> usize {
     end.checked_sub(data.as_ptr() as usize).unwrap()
 }
 
+#[doc(hidden)]
+/// Slice builder.
+///
+/// This is used internally by the [`crate::slice_attr!`] an [`crate::slice_attr_mut!`]
+/// for type inference.
 pub struct SliceBuilder<Attr: Pod> {
     start: *const Attr,
     elt_stride: usize,

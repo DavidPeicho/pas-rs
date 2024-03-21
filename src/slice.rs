@@ -92,6 +92,17 @@ impl<'a, T: Pod> Slice<'a, T> {
         }
     }
 
+    /// Create a [`SliceIterator`] for this slice.
+    ///
+    /// ### Example
+    ///
+    /// ```rust
+    /// use strided_slice::Slice;
+    ///
+    /// let data = [0, 1, 2, 3];
+    /// let slice: Slice<u32> = Slice::new(&data, 0, 1);
+    /// println!("{:?}", slice.iter().copied());
+    /// ```
     pub fn iter(&'a self) -> SliceIterator<'a, T> {
         SliceIterator::new(self)
     }
@@ -126,9 +137,12 @@ impl<'a, T: Pod + Debug> std::fmt::Debug for Slice<'a, T> {
 /// Iterator
 ///
 
+/// Iterator for the [`Slice`] type.
 #[derive(Clone, Copy)]
 pub struct SliceIterator<'a, T: Pod> {
+    /// Start pointer, pointing to the first byte of the slice.
     start: *const u8,
+    /// End pointer, pointing one byte **after** the end of the slice.
     end: *const u8,
     stride: usize,
     _phantom_data: PhantomData<&'a T>,
@@ -138,8 +152,8 @@ impl<'a, T: Pod> SliceIterator<'a, T> {
     fn new(slice: &'a Slice<'a, T>) -> Self {
         let data = slice.inner;
         Self {
-            start: data.start(),
-            end: data.end(),
+            start: data.start,
+            end: data.end,
             stride: data.stride(),
             _phantom_data: PhantomData,
         }

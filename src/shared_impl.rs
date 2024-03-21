@@ -1,4 +1,4 @@
-use std::{any::TypeId, marker::PhantomData};
+use std::marker::PhantomData;
 
 /// Slice error
 ///
@@ -17,7 +17,12 @@ pub enum SliceError {
     /// // Panics, since the slice doesn't have a size of at least 16 bytes.
     /// let slice: Slice<u32> = Slice::new(&data, 16, 1);
     /// ```
-    OffsetOutOfBounds { size: usize, offset: usize },
+    OffsetOutOfBounds {
+        /// Slice size, in **bytes**
+        size: usize,
+        /// Byte offset
+        offset: usize,
+    },
     /// Sliced attribute byte size is bigger than the stride.
     ///
     /// ## Example
@@ -31,8 +36,11 @@ pub enum SliceError {
     /// let slice: Slice<u32> = Slice::new(&data, 16, 1);
     /// ```
     AttributeLargerThanStride {
-        type_id: TypeId,
+        /// Type name of the attribute read by the slice
+        type_name: &'static str,
+        /// Attribute size, in **bytes**
         attr: usize,
+        /// Slice stride, in **bytes**
         stride: usize,
     },
     /// Attribute is not aligned to the request offset in the slice.
@@ -46,7 +54,12 @@ pub enum SliceError {
     /// // Panics, since the offset will be unaligned
     /// let slice: Slice<u32> = Slice::new(&data, 1, 1);
     /// ```
-    AlignmentFault { type_id: TypeId, offset: usize },
+    AlignmentFault {
+        /// Type name of the attribute read by the slice
+        type_name: &'static str,
+        /// Byte offset
+        offset: usize,
+    },
 }
 
 impl std::fmt::Debug for SliceError {
@@ -60,25 +73,26 @@ impl std::fmt::Debug for SliceError {
                 )
             }
             Self::AttributeLargerThanStride {
-                type_id,
+                type_name,
                 attr,
                 stride,
             } => {
                 write!(
                     f,
                     "Attribute '{:?}' with size {} bytes, larger than stride with size {}",
-                    type_id, attr, stride
+                    type_name, attr, stride
                 )
             }
-            Self::AlignmentFault { type_id, offset } => write!(
+            Self::AlignmentFault { type_name, offset } => write!(
                 f,
                 "Attribute '{:?}' isn't aligned to the byte offset {}",
-                type_id, offset
+                type_name, offset
             ),
         }
     }
 }
 
+#[doc(hidden)]
 /// Slice base implementation.
 ///
 /// Do not use this type directly, instead:
@@ -86,8 +100,10 @@ impl std::fmt::Debug for SliceError {
 /// - Use the [`Slice`] or [`SliceMut`] types
 #[derive(Clone, Copy)]
 pub struct SliceBase<Attr: Sized + 'static> {
-    pub(crate) data: *const u8,
-    end: *const u8,
+    /// Start pointer, pointing on the first byte of the slice.
+    pub(crate) start: *const u8,
+    /// End pointer, pointing one byte **after** the end of the slice.
+    pub(crate) end: *const u8,
     /// Stride, in **bytes**
     stride: usize,
     _phantom: PhantomData<Attr>,
@@ -121,7 +137,7 @@ impl<Attr: Sized> SliceBase<Attr> {
         // the offset and stride are valid.
         if std::mem::size_of::<Attr>() > stride {
             Err(SliceError::AttributeLargerThanStride {
-                type_id: std::any::TypeId::of::<Attr>(),
+                type_name: std::any::type_name::<Attr>(),
                 attr: std::mem::size_of::<Attr>(),
                 stride,
             })
@@ -132,29 +148,16 @@ impl<Attr: Sized> SliceBase<Attr> {
             })
         } else if ptr.align_offset(std::mem::align_of::<Attr>()) != 0 {
             Err(SliceError::AlignmentFault {
-                type_id: std::any::TypeId::of::<Attr>(),
+                type_name: std::any::type_name::<Attr>(),
                 offset,
             })
         } else {
             Ok(Self {
-                data: ptr,
+                start: ptr,
                 end: ptr_range.end,
                 stride,
                 _phantom: PhantomData,
             })
-        }
-    }
-
-    pub(crate) fn start(&self) -> *const u8 {
-        self.data
-    }
-
-    pub(crate) fn end(&self) -> *const u8 {
-        let count = self.len();
-        if count > 0 {
-            self.get_ptr(count - 1).unwrap()
-        } else {
-            self.data
         }
     }
 
@@ -178,7 +181,7 @@ impl<Attr: Sized> SliceBase<Attr> {
     /// Number of elements in the slice.
     pub fn len(&self) -> usize {
         (self.end as usize)
-            .checked_sub(self.data as usize)
+            .checked_sub(self.start as usize)
             .unwrap()
             .div_ceil(self.stride)
     }
@@ -192,7 +195,7 @@ impl<Attr: Sized> SliceBase<Attr> {
     pub(crate) fn get_ptr(&self, index: usize) -> Option<*const u8> {
         if index < self.len() {
             let start = self.stride * index;
-            Some(unsafe { self.data.add(start) })
+            Some(unsafe { self.start.add(start) })
         } else {
             None
         }
@@ -213,9 +216,8 @@ macro_rules! impl_iterator {
             type Item = $elem;
 
             fn next(&mut self) -> Option<$elem> {
-                // `end` is inclusive to avoid adding some chance of making
-                // an invalid read, causing undefined behavior.
-                if self.start > self.end {
+                // `end` is exclusive and points one byte after the end of the slice.
+                if self.start >= self.end {
                     return None;
                 }
                 unsafe {
