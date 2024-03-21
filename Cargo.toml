@@ -2,12 +2,13 @@
 name = "pas"
 version = "0.1.0-beta.0"
 edition = "2021"
-license = "MIT OR Apache-2.0"
-keywords = ["data", "slice"]
+license = "MIT"
 authors = ["David Peicho <david.peicho@gmail.com>"]
 readme = "README.md"
 homepage = "https://github.com/DavidPeicho/pas-rs"
 repository = "https://github.com/DavidPeicho/pas-rs"
+categories = ["data-structures"]
+keywords = ["data", "slice", "strided"]
 
 [dependencies]
 bytemuck = { version = "1.7.2" }
