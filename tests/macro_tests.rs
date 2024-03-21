@@ -1,4 +1,4 @@
-use strided_slice::{slice, slice_attr, slice_attr_mut, slice_mut, Slice, SliceMut};
+use pas::{slice, slice_attr, slice_attr_mut, slice_mut, Slice, SliceMut};
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]

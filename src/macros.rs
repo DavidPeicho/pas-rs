@@ -6,7 +6,7 @@
 /// ## Example
 ///
 /// ```rust
-/// use strided_slice::slice_attr;
+/// use pas::slice_attr;
 ///
 /// #[repr(C)]
 /// #[derive(Clone, Copy, Default, bytemuck::Pod, bytemuck::Zeroable)]
@@ -26,7 +26,7 @@
 /// The stride, in **element count**, can be passed as a first argument:
 ///
 /// ```rust
-/// use strided_slice::slice_attr;
+/// use pas::slice_attr;
 ///
 /// let data = [0, 1, 2, 3, 4, 5, 6];
 /// let slice = slice_attr!(2, data, [0]);
@@ -36,7 +36,7 @@
 macro_rules! slice_attr {
     ($stride:expr, $data:expr, $( $rest:tt )*) => {
         {
-            use strided_slice::SliceBuilder;
+            use pas::SliceBuilder;
 
             let slice = $data.as_slice();
             let r = &(slice$($rest)*);
@@ -56,7 +56,7 @@ macro_rules! slice_attr {
 /// ## Example
 ///
 /// ```rust
-/// use strided_slice::{slice, Slice};
+/// use pas::{slice, Slice};
 ///
 /// #[repr(C)]
 /// #[derive(Clone, Copy, Default, bytemuck::Pod, bytemuck::Zeroable)]
@@ -76,7 +76,7 @@ macro_rules! slice_attr {
 macro_rules! slice {
     ($stride:expr, $data:expr, $( $rest:tt )*) => {
         {
-            use strided_slice::{Slice, get_byte_offset};
+            use pas::{Slice, get_byte_offset};
 
             let slice = $data.as_slice();
             let r = &(slice$($rest)*) as *const _ as *const u8;
@@ -94,7 +94,7 @@ macro_rules! slice {
 macro_rules! slice_mut {
     ($stride:expr, $data:expr, $( $rest:tt )*) => {
         {
-            use strided_slice::{get_byte_offset, SliceMut};
+            use pas::{get_byte_offset, SliceMut};
 
             let slice = $data.as_mut_slice();
             let r = &(slice$($rest)*) as *const _ as *const u8;
@@ -112,7 +112,7 @@ macro_rules! slice_mut {
 macro_rules! slice_attr_mut {
     ($stride:expr, $data:expr, $( $rest:tt )*) => {
         {
-            use strided_slice::SliceBuilder;
+            use pas::SliceBuilder;
 
             let slice = $data.as_mut_slice();
             let r = &(slice$($rest)*);

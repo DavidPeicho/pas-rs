@@ -1,6 +1,6 @@
 use std::borrow::{Borrow, BorrowMut};
 
-use strided_slice::{Slice, SliceMut};
+use pas::{Slice, SliceMut};
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
