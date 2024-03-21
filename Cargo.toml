@@ -11,6 +11,11 @@ description = "Crate for strided slice"
 categories = ["data-structures"]
 keywords = ["data", "slice", "strided"]
 
+exclude = [
+    ".gitignore",
+    ".vscode"
+]
+
 [dependencies]
 bytemuck = { version = "1.7.2" }
 
