@@ -1,8 +1,8 @@
 # pas-rs
 
-_Pas_ (\pa\), which means "step" in French, is a crate for slicing stuff, especially strided data.
+_pas_ (\\pa\\) (standing for "step" in French), is a crate for slicing stuff, especially strided data.
 
-With _Pas_ allows you to:
+_pas_ allows you to:
 * Get a slice with a custom stride
 * Slice only a part of a struct
 
