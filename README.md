@@ -68,7 +68,7 @@ When slicing an array whose type information is known only at runtime, you can u
 let uv_byte_offset = std::mem::size_of::<Vertex>() + std::mem::size_of::<[f32; 3]>();
 
 // Slice starting at the byte offset `32`, with a stride of 1 element.
-let uvs: Slice<[f32; 3]> = Slice::new(&vertices, uv_byte_offset, 1);
+let uvs: Slice<[f32; 3]> = Slice::new(&vertices, uv_byte_offset);
 println!("{:?}", uvs); // [[0.0, 1.0]]
 ```
 
@@ -82,11 +82,11 @@ use pas::{slice_attr, Slice};
 let data: [u32; 5] = [0, 1, 2, 3, 4];
 
 // Using the macro, the stride appears first
-let slice = slice_attr!(2, data, [0]);
+let slice = slice_attr!(data, [0]).strided(2);
 println!("{:?}", slice); // [0, 2, 4]
 
 // Specified as the last argument when using `Slice`/`SliceMut`
-let slice: Slice<u32> = Slice::new(&data, 0, 3);
+let slice: Slice<u32> = Slice::new(&data, 0).strided(3);
 println!("{:?}", slice); // [0, 3]
 ```
 

@@ -29,22 +29,20 @@ pub fn get_byte_offset<V: Sized>(data: &[V], start: *const u8) -> usize {
 /// for type inference.
 pub struct SliceBuilder<Attr: Pod> {
     start: *const Attr,
-    elt_stride: usize,
 }
 
 impl<Attr: Pod> SliceBuilder<Attr> {
-    pub fn new(start: &Attr, elt_stride: usize) -> Self {
+    pub fn new(start: &Attr) -> Self {
         Self {
             start: start as *const Attr,
-            elt_stride,
         }
     }
     pub fn build<'a, V: Pod>(&self, data: &'a [V]) -> Slice<'a, Attr> {
         let byte_offset = get_byte_offset(data, self.start as *const u8);
-        Slice::new(data, byte_offset, self.elt_stride)
+        Slice::new(data, byte_offset)
     }
     pub fn build_mut<'a, V: Pod>(&self, data: &'a mut [V]) -> SliceMut<'a, Attr> {
         let byte_offset = get_byte_offset(data, self.start as *const u8);
-        SliceMut::new(data, byte_offset, self.elt_stride)
+        SliceMut::new(data, byte_offset)
     }
 }

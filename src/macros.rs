@@ -29,22 +29,19 @@
 /// use pas::slice_attr;
 ///
 /// let data = [0, 1, 2, 3, 4, 5, 6];
-/// let slice = slice_attr!(2, data, [0]);
+/// let slice = slice_attr!(data, [0]);
 /// println!("{:?}", slice)
 /// ````
 #[macro_export]
 macro_rules! slice_attr {
-    ($stride:expr, $data:expr, $( $rest:tt )*) => {
+    ($data:expr, $( $rest:tt )*) => {
         {
             use pas::SliceBuilder;
 
             let slice = $data.as_slice();
             let r = &(slice$($rest)*);
-            SliceBuilder::new(r, $stride).build(slice)
+            SliceBuilder::new(r).build(slice)
         }
-    };
-    ($data:expr, $( $rest:tt )*) => {
-        slice_attr!(1, $data, $($rest)*)
     };
 }
 
@@ -74,36 +71,30 @@ macro_rules! slice_attr {
 /// ```
 #[macro_export]
 macro_rules! slice {
-    ($stride:expr, $data:expr, $( $rest:tt )*) => {
+    ($data:expr, $( $rest:tt )*) => {
         {
             use pas::{Slice, get_byte_offset};
 
             let slice = $data.as_slice();
             let r = &(slice$($rest)*) as *const _ as *const u8;
             let byte_offset = get_byte_offset(slice, r);
-            Slice::new(slice, byte_offset, $stride)
+            Slice::new(slice, byte_offset)
         }
-    };
-    ($data:expr, $( $rest:tt )*) => {
-        slice!(1, $data, $($rest)*)
     };
 }
 
 /// Similar to [`slice!`], but for [`crate::SliceMut`].
 #[macro_export]
 macro_rules! slice_mut {
-    ($stride:expr, $data:expr, $( $rest:tt )*) => {
+    ($data:expr, $( $rest:tt )*) => {
         {
             use pas::{get_byte_offset, SliceMut};
 
             let slice = $data.as_mut_slice();
             let r = &(slice$($rest)*) as *const _ as *const u8;
             let byte_offset = get_byte_offset(slice, r);
-            SliceMut::new(slice, byte_offset, $stride)
+            SliceMut::new(slice, byte_offset)
         }
-    };
-    ($data:expr, $( $rest:tt )*) => {
-        slice_mut!(1, $data, $($rest)*)
     };
 }
 
@@ -116,7 +107,7 @@ macro_rules! slice_attr_mut {
 
             let slice = $data.as_mut_slice();
             let r = &(slice$($rest)*);
-            SliceBuilder::new(r, $stride).build_mut(slice)
+            SliceBuilder::new(r).build_mut(slice)
         }
     };
     ($data:expr, $( $rest:tt )*) => {

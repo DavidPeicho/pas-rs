@@ -15,33 +15,13 @@ pub enum SliceError {
     ///
     /// let data: Vec<u32> = Vec::new();
     /// // Panics, since the slice doesn't have a size of at least 16 bytes.
-    /// let slice: Slice<u32> = Slice::new(&data, 16, 1);
+    /// let slice: Slice<u32> = Slice::new(&data, 16);
     /// ```
     OffsetOutOfBounds {
         /// Slice size, in **bytes**
         size: usize,
         /// Byte offset
         offset: usize,
-    },
-    /// Sliced attribute byte size is bigger than the stride.
-    ///
-    /// ## Example
-    ///
-    /// ```rust,should_panic
-    /// use pas::{Slice};
-    ///
-    /// let data: Vec<u16> = vec!(0_u16, 1, 2);
-    /// // Panics, since the slice have a stride of 1 * std::mem::size_of::<u16>(),
-    /// // but the requested attribute has size std::mem::size_of::<u32>().
-    /// let slice: Slice<u32> = Slice::new(&data, 16, 1);
-    /// ```
-    AttributeLargerThanStride {
-        /// Type name of the attribute read by the slice
-        type_name: &'static str,
-        /// Attribute size, in **bytes**
-        attr: usize,
-        /// Slice stride, in **bytes**
-        stride: usize,
     },
     /// Attribute is not aligned to the request offset in the slice.
     ///
@@ -52,7 +32,7 @@ pub enum SliceError {
     ///
     /// let data: Vec<u8> = vec!(0_u8, 1, 2);
     /// // Panics, since the offset will be unaligned
-    /// let slice: Slice<u32> = Slice::new(&data, 1, 1);
+    /// let slice: Slice<u32> = Slice::new(&data, 1);
     /// ```
     AlignmentFault {
         /// Type name of the attribute read by the slice
@@ -70,17 +50,6 @@ impl std::fmt::Debug for SliceError {
                     f,
                     "Byte offset is {}, but slice has a size of {} bytes",
                     offset, size
-                )
-            }
-            Self::AttributeLargerThanStride {
-                type_name,
-                attr,
-                stride,
-            } => {
-                write!(
-                    f,
-                    "Attribute '{:?}' with size {} bytes, larger than stride with size {}",
-                    type_name, attr, stride
                 )
             }
             Self::AlignmentFault { type_name, offset } => write!(
@@ -134,13 +103,7 @@ impl<Attr: Sized> SliceBase<Attr> {
         let ptr: *const u8 = unsafe { ptr_range.start.add(offset) };
         // Empty slice are allowed, but we need to ensure that
         // the offset and stride are valid.
-        if std::mem::size_of::<Attr>() > stride {
-            Err(SliceError::AttributeLargerThanStride {
-                type_name: std::any::type_name::<Attr>(),
-                attr: std::mem::size_of::<Attr>(),
-                stride,
-            })
-        } else if offset > 0 && offset >= bytes {
+        if offset > 0 && offset >= bytes {
             Err(SliceError::OffsetOutOfBounds {
                 size: bytes,
                 offset,
@@ -160,6 +123,15 @@ impl<Attr: Sized> SliceBase<Attr> {
         }
     }
 
+    pub(crate) fn strided(self, stride_count: usize) -> Self {
+        Self {
+            start: self.start,
+            end: self.end,
+            stride: stride_count * self.stride,
+            _phantom: PhantomData,
+        }
+    }
+
     /// Get the reference at index.
     ///
     /// ## Example
@@ -168,7 +140,7 @@ impl<Attr: Sized> SliceBase<Attr> {
     /// # use pas::Slice;
     ///
     /// let data = [1, 2, 3, 4];
-    /// let slice: Slice<u32> = Slice::new(&data, 0, 1);
+    /// let slice: Slice<u32> = Slice::new(&data, 0);
     /// println!("{}", slice[0]); // Prints `1`
     /// println!("{}", slice[3]); // Prints `3`
     /// ```

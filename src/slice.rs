@@ -12,7 +12,7 @@ use crate::shared_impl::{impl_iterator, SliceBase};
 /// ```
 /// use pas::Slice;
 /// let array = [1.0, 2.0, 3.0];
-/// let slice: Slice<f64> = Slice::new(&array, 0, 1);
+/// let slice: Slice<f64> = Slice::new(&array, 0);
 /// ```
 ///
 /// # Important Notes
@@ -56,18 +56,18 @@ impl<'a, T: Pod> Slice<'a, T> {
     /// ];
     ///
     /// // `positions` slice starts at byte offset 0, and stride will be 20 bytes (4 * 3 + 4 * 2).
-    /// let positions: Slice<[f32; 3]> = Slice::new(&data, 0, 1);
+    /// let positions: Slice<[f32; 3]> = Slice::new(&data, 0);
     ///
     /// // `uvs` slice starts at byte offset 4 * 3, and stride will be 20 bytes (4 * 3 + 4 * 2).
-    /// let uvs: Slice<[f32; 2]> = Slice::new(&data, std::mem::size_of::<[f32; 3]>(), 1);
+    /// let uvs: Slice<[f32; 2]> = Slice::new(&data, std::mem::size_of::<[f32; 3]>());
     /// ```
     ///
     /// ## Panics
     ///
     /// This method is a wrapper around
-    pub fn new<V: Pod>(data: &'a [V], byte_offset: usize, elt_stride: usize) -> Self {
+    pub fn new<V: Pod>(data: &'a [V], byte_offset: usize) -> Self {
         Self {
-            inner: SliceBase::new_typed(data, byte_offset, elt_stride).unwrap(),
+            inner: SliceBase::new_typed(data, byte_offset, 1).unwrap(),
             _phantom: PhantomData,
         }
     }
@@ -94,7 +94,14 @@ impl<'a, T: Pod> Slice<'a, T> {
 
     /// Create a slice where the stride is the same as the attribute size.
     pub fn native(data: &'a [T]) -> Self {
-        Self::new(data, 0, 1)
+        Self::new(data, 0)
+    }
+
+    pub fn strided(self, stride_count: usize) -> Self {
+        Self {
+            inner: self.inner.strided(stride_count),
+            _phantom: PhantomData,
+        }
     }
 
     /// Create a [`SliceIterator`] for this slice.
@@ -105,7 +112,7 @@ impl<'a, T: Pod> Slice<'a, T> {
     /// use pas::Slice;
     ///
     /// let data = [0, 1, 2, 3];
-    /// let slice: Slice<u32> = Slice::new(&data, 0, 1);
+    /// let slice: Slice<u32> = Slice::new(&data, 0);
     /// println!("{:?}", slice.iter().copied());
     /// ```
     pub fn iter(&'a self) -> SliceIterator<'a, T> {

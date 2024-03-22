@@ -53,10 +53,10 @@ macro_rules! slice_attr_tests {
                 #[allow(unused_mut)]
                 let mut values = vec![0, 1, 2, 3, 4, 5];
 
-                let slice = $slice_attr!(1, values, [0]);
+                let slice = $slice_attr!(values, [0]).strided(1);
                 assert!(slice.iter().eq([0, 1, 2, 3, 4, 5].iter()));
 
-                let slice = $slice_attr!(2, values, [1]);
+                let slice = $slice_attr!(values, [1]).strided(2);
                 assert!(slice.iter().eq([1, 3, 5].iter()));
             }
         }
@@ -90,10 +90,10 @@ macro_rules! slice_tests {
                 #[allow(unused_mut)]
                 let mut values = vec![0, 1, 2, 3, 4, 5];
 
-                let slice: $type<u32> = $slice!(1, values, [0]);
+                let slice: $type<u32> = $slice!(values, [0]).strided(1);
                 assert!(slice.iter().eq([0, 1, 2, 3, 4, 5].iter()));
 
-                let slice: $type<u32> = $slice!(2, values, [1]);
+                let slice: $type<u32> = $slice!(values, [1]).strided(2);
                 assert!(slice.iter().eq([1, 3, 5].iter()));
             }
         }

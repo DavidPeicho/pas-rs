@@ -19,9 +19,9 @@ impl<'a, Attr: Pod + Debug> std::fmt::Debug for SliceMut<'a, Attr> {
 
 impl<'a, Attr: Pod> SliceMut<'a, Attr> {
     /// Mutable version of [`crate::Slice::new()`].
-    pub fn new<V: Pod>(data: &'a mut [V], byte_offset: usize, elt_stride: usize) -> Self {
+    pub fn new<V: Pod>(data: &'a mut [V], byte_offset: usize) -> Self {
         Self {
-            inner: SliceBase::new_typed(data, byte_offset, elt_stride).unwrap(),
+            inner: SliceBase::new_typed(data, byte_offset, 1).unwrap(),
             _phantom: PhantomData,
         }
     }
@@ -38,7 +38,14 @@ impl<'a, Attr: Pod> SliceMut<'a, Attr> {
 
     /// Create a mutable slice where the stride is the same as the attribute size.
     pub fn native(data: &'a mut [Attr]) -> Self {
-        Self::new(data, 0, 1)
+        Self::new(data, 0)
+    }
+
+    pub fn strided(self, stride_count: usize) -> Self {
+        Self {
+            inner: self.inner.strided(stride_count),
+            _phantom: PhantomData,
+        }
     }
 
     /// Mutable version of [`crate::SliceBase::get()`].
@@ -60,7 +67,7 @@ impl<'a, Attr: Pod> SliceMut<'a, Attr> {
     /// use pas::SliceMut;
     ///
     /// let mut dest = [0_u32, 0, 0, 0];
-    /// let slice: SliceMut<u32> = SliceMut::new(&mut dest, 0, 1);
+    /// let slice: SliceMut<u32> = SliceMut::new(&mut dest, 0);
     ///
     /// slice.copy_from_slice(&[1_u8, 2]);
     /// println!("{:?}", slice); // Prints `[1, 2]`
