@@ -108,4 +108,4 @@ to use and comes with runtime checks preventing you to run into undefined behavi
 * Ensure that reads are aligned
 * Check size of read compared to stride
 
-This crate relies requires your types to implement the [Pod trait](https://docs.rs/bytemuck/latest/bytemuck/trait.Pod.html) from the [bytemuck crate](https://docs.rs/bytemuck/latest/bytemuck/), improving safety with alignment rules, illegal bit patterns, etc...
+This crate requires your types to implement the [Pod trait](https://docs.rs/bytemuck/latest/bytemuck/trait.Pod.html) from the [bytemuck crate](https://docs.rs/bytemuck/latest/bytemuck/), improving safety with alignment rules, and illegal bit patterns.
