@@ -1,15 +1,15 @@
 # pas-rs
 
-_pas_ (\\pa\\) (standing for "step" in French), is a crate for slicing stuff, especially strided data.
+_pas_ (\\pa\\), meaning "step" in French, is a crate for slicing stuff, especially strided data.
 
 _pas_ allows you to:
 * Get a slice with a custom stride
 * Slice only a part of a struct
 
-⚠️ This crate relies on casting between different types ⚠️
+⚠️ This crate relies on casting between different data types ⚠️
 
 * This operation is **endian dependant**
-* No default mechanism to **encode**/**decode** types in **big endian** is provided
+* No mechanism to **encode**/**decode** to/from **big endian** is provided
 
 ## Examples
 
@@ -97,7 +97,7 @@ use pas::{slice_attr, Slice};
 
 let data: [u32; 5] = [0, 1, 2, 3, 4];
 // Default stride is `std::mem::size_of::<u32>()` here, attribute
-// size is std::mem::size_of::<[u32; 3]>().
+// size is `std::mem::size_of::<[u32; 3]>()`.
 let _: Slice<[u32; 3]> = Slice::new(&data, 0);
 ```
 

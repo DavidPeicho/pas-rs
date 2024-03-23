@@ -220,6 +220,7 @@ macro_rules! impl_iterator {
                     return None;
                 }
                 unsafe {
+                    // Using `transmute` here because `self.start` is always a pointer.
                     let ret = Some(std::mem::transmute::<_, $elem>(self.start));
                     self.start = self.start.add(self.stride);
                     ret
