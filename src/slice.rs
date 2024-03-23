@@ -12,7 +12,7 @@ use crate::shared_impl::{impl_iterator, SliceBase};
 /// ```
 /// use pas::Slice;
 /// let array = [1.0, 2.0, 3.0];
-/// let slice: Slice<f64> = Slice::new(&array, 0, 1);
+/// let slice: Slice<f64> = Slice::new(&array, 0);
 /// ```
 ///
 /// # Important Notes
@@ -25,7 +25,7 @@ pub struct Slice<'a, T: Pod> {
 }
 
 impl<'a, T: Pod> Slice<'a, T> {
-    /// Create a strided slice starting at the byte offset `offset`.
+    /// Create a slice starting at the byte offset `offset`.
     ///
     /// - `offset` represents the byte offset in `V` to start from and **must** be less than
     ///   the size of `V`
@@ -56,16 +56,40 @@ impl<'a, T: Pod> Slice<'a, T> {
     /// ];
     ///
     /// // `positions` slice starts at byte offset 0, and stride will be 20 bytes (4 * 3 + 4 * 2).
-    /// let positions: Slice<[f32; 3]> = Slice::new(&data, 0, 1);
+    /// let positions: Slice<[f32; 3]> = Slice::new(&data, 0);
     ///
     /// // `uvs` slice starts at byte offset 4 * 3, and stride will be 20 bytes (4 * 3 + 4 * 2).
-    /// let uvs: Slice<[f32; 2]> = Slice::new(&data, std::mem::size_of::<[f32; 3]>(), 1);
+    /// let uvs: Slice<[f32; 2]> = Slice::new(&data, std::mem::size_of::<[f32; 3]>());
     /// ```
     ///
     /// ## Panics
     ///
-    /// This method is a wrapper around
-    pub fn new<V: Pod>(data: &'a [V], byte_offset: usize, elt_stride: usize) -> Self {
+    /// This function panics if:
+    /// - The slice attribute size (`size_of(Attr)`) is bigger than the stride size
+    /// - The `byte_offset` is out of the slice range
+    /// - The slice with the `byte_offset` is unaligned to the attribute
+    pub fn new<V: Pod>(data: &'a [V], byte_offset: usize) -> Self {
+        Self::strided(data, byte_offset, 1)
+    }
+
+    /// Similar to [`Self::new`], but allows to set a custom stride.
+    ///
+    /// The stride is specified in count of **elements**, not in **bytes**.
+    ///
+    /// ## Examples
+    ///
+    /// ```rust
+    /// use pas::Slice;
+    ///
+    /// let mut data: [u32; 6] = [1, 2, 3, 4, 5, 6];
+    /// let positions: Slice<[u32; 3]> = Slice::strided(&data, 0, 3);
+    /// println!("{:?}", positions)// Prints `[[1, 2, 3], [4, 5, 6]]`
+    /// ```
+    ///
+    /// ## Panics
+    ///
+    /// Panics in a similar way to [`Self::new`].
+    pub fn strided<V: Pod>(data: &'a [V], byte_offset: usize, elt_stride: usize) -> Self {
         Self {
             inner: SliceBase::new_typed(data, byte_offset, elt_stride).unwrap(),
             _phantom: PhantomData,
@@ -94,7 +118,7 @@ impl<'a, T: Pod> Slice<'a, T> {
 
     /// Create a slice where the stride is the same as the attribute size.
     pub fn native(data: &'a [T]) -> Self {
-        Self::new(data, 0, 1)
+        Self::new(data, 0)
     }
 
     /// Create a [`SliceIterator`] for this slice.
@@ -105,7 +129,7 @@ impl<'a, T: Pod> Slice<'a, T> {
     /// use pas::Slice;
     ///
     /// let data = [0, 1, 2, 3];
-    /// let slice: Slice<u32> = Slice::new(&data, 0, 1);
+    /// let slice: Slice<u32> = Slice::new(&data, 0);
     /// println!("{:?}", slice.iter().copied());
     /// ```
     pub fn iter(&'a self) -> SliceIterator<'a, T> {

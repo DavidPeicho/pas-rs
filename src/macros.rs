@@ -81,7 +81,7 @@ macro_rules! slice {
             let slice = $data.as_slice();
             let r = &(slice$($rest)*) as *const _ as *const u8;
             let byte_offset = get_byte_offset(slice, r);
-            Slice::new(slice, byte_offset, $stride)
+            Slice::strided(slice, byte_offset, $stride)
         }
     };
     ($data:expr, $( $rest:tt )*) => {
@@ -99,7 +99,7 @@ macro_rules! slice_mut {
             let slice = $data.as_mut_slice();
             let r = &(slice$($rest)*) as *const _ as *const u8;
             let byte_offset = get_byte_offset(slice, r);
-            SliceMut::new(slice, byte_offset, $stride)
+            SliceMut::strided(slice, byte_offset, $stride)
         }
     };
     ($data:expr, $( $rest:tt )*) => {

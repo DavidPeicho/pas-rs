@@ -41,10 +41,10 @@ impl<Attr: Pod> SliceBuilder<Attr> {
     }
     pub fn build<'a, V: Pod>(&self, data: &'a [V]) -> Slice<'a, Attr> {
         let byte_offset = get_byte_offset(data, self.start as *const u8);
-        Slice::new(data, byte_offset, self.elt_stride)
+        Slice::strided(data, byte_offset, self.elt_stride)
     }
     pub fn build_mut<'a, V: Pod>(&self, data: &'a mut [V]) -> SliceMut<'a, Attr> {
         let byte_offset = get_byte_offset(data, self.start as *const u8);
-        SliceMut::new(data, byte_offset, self.elt_stride)
+        SliceMut::strided(data, byte_offset, self.elt_stride)
     }
 }

@@ -15,7 +15,7 @@ pub enum SliceError {
     ///
     /// let data: Vec<u32> = Vec::new();
     /// // Panics, since the slice doesn't have a size of at least 16 bytes.
-    /// let slice: Slice<u32> = Slice::new(&data, 16, 1);
+    /// let slice: Slice<u32> = Slice::new(&data, 16);
     /// ```
     OffsetOutOfBounds {
         /// Slice size, in **bytes**
@@ -33,7 +33,7 @@ pub enum SliceError {
     /// let data: Vec<u16> = vec!(0_u16, 1, 2);
     /// // Panics, since the slice have a stride of 1 * std::mem::size_of::<u16>(),
     /// // but the requested attribute has size std::mem::size_of::<u32>().
-    /// let slice: Slice<u32> = Slice::new(&data, 16, 1);
+    /// let slice: Slice<u32> = Slice::new(&data, 16);
     /// ```
     AttributeLargerThanStride {
         /// Type name of the attribute read by the slice
@@ -52,7 +52,7 @@ pub enum SliceError {
     ///
     /// let data: Vec<u8> = vec!(0_u8, 1, 2);
     /// // Panics, since the offset will be unaligned
-    /// let slice: Slice<u32> = Slice::new(&data, 1, 1);
+    /// let slice: Slice<u32> = Slice::new(&data, 1);
     /// ```
     AlignmentFault {
         /// Type name of the attribute read by the slice
@@ -168,13 +168,13 @@ impl<Attr: Sized> SliceBase<Attr> {
     /// # use pas::Slice;
     ///
     /// let data = [1, 2, 3, 4];
-    /// let slice: Slice<u32> = Slice::new(&data, 0, 1);
+    /// let slice: Slice<u32> = Slice::new(&data, 0);
     /// println!("{}", slice[0]); // Prints `1`
     /// println!("{}", slice[3]); // Prints `3`
     /// ```
     pub fn get(&self, index: usize) -> Option<&Attr> {
         self.get_ptr(index)
-            .map(|ptr| unsafe { std::mem::transmute::<_, &Attr>(ptr) })
+            .map(|ptr| unsafe { &*ptr.cast::<Attr>() })
     }
 
     /// Number of elements in the slice.

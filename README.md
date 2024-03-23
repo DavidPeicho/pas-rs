@@ -68,13 +68,13 @@ When slicing an array whose type information is known only at runtime, you can u
 let uv_byte_offset = std::mem::size_of::<Vertex>() + std::mem::size_of::<[f32; 3]>();
 
 // Slice starting at the byte offset `32`, with a stride of 1 element.
-let uvs: Slice<[f32; 3]> = Slice::new(&vertices, uv_byte_offset, 1);
+let uvs: Slice<[f32; 3]> = Slice::new(&vertices, uv_byte_offset);
 println!("{:?}", uvs); // [[0.0, 1.0]]
 ```
 
 #### Custom Stride
 
-It's possible to use a custom stride, in elements count:
+It's possible to use a custom stride, in **elements count**:
 
 ```rust
 use pas::{slice_attr, Slice};
@@ -86,13 +86,26 @@ let slice = slice_attr!(2, data, [0]);
 println!("{:?}", slice); // [0, 2, 4]
 
 // Specified as the last argument when using `Slice`/`SliceMut`
-let slice: Slice<u32> = Slice::new(&data, 0, 3);
+let slice: Slice<u32> = Slice::strided(&data, 0, 3);
 println!("{:?}", slice); // [0, 3]
+```
+
+The stride must always be at least the size of the attribute. This example will panic:
+
+```rust,should_panic
+use pas::{slice_attr, Slice};
+
+let data: [u32; 5] = [0, 1, 2, 3, 4];
+// Default stride is `std::mem::size_of::<u32>()` here, attribute
+// size is std::mem::size_of::<[u32; 3]>().
+let _: Slice<[u32; 3]> = Slice::new(&data, 0);
 ```
 
 ## Safety
 
 While this crate makes use of `unsafe` and `transmute`, it's (_mostly_) safe
-to use and comes with runtime checks preventing you to run into undefined behaviors.
+to use and comes with runtime checks preventing you to run into undefined behaviors:
+* Ensure that reads are aligned
+* Check size of read compared to stride
 
 This crate relies requires your types to implement the [Pod trait](https://docs.rs/bytemuck/latest/bytemuck/trait.Pod.html) from the [bytemuck crate](https://docs.rs/bytemuck/latest/bytemuck/), improving safety with alignment rules, illegal bit patterns, etc...
