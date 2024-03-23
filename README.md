@@ -1,5 +1,11 @@
 # pas-rs
 
+<p align="center">
+  <a href="https://crates.io/crates/guillotiere">
+      <img src="https://img.shields.io/crates/v/pas.svg" alt="crates.io">
+  </a>
+</p>
+
 _pas_ (\\pa\\), meaning "step" in French, is a crate for slicing stuff, especially strided data.
 
 _pas_ allows you to:
