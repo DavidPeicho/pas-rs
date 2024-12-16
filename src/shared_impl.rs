@@ -190,6 +190,11 @@ impl<Attr: Sized> SliceBase<Attr> {
         self.len() == 0
     }
 
+    /// Pointer to the first byte in the slice.
+    pub fn as_ptr(&self) -> *const u8 {
+        self.start
+    }
+
     /// Get a pointer to the element at index `index`
     pub(crate) fn get_ptr(&self, index: usize) -> Option<*const u8> {
         if index < self.len() {
