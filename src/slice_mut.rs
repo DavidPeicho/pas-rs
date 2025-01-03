@@ -153,6 +153,15 @@ impl<'a, Attr: Pod> From<&'a mut [Attr]> for SliceMut<'a, Attr> {
     }
 }
 
+impl<'a, Attr: Pod> Default for SliceMut<'a, Attr> {
+    fn default() -> Self {
+        Self {
+            inner: Default::default(),
+            _phantom: Default::default(),
+        }
+    }
+}
+
 ///
 /// Iterator
 ///
