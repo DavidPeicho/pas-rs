@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, ptr::null};
 
 /// Slice error
 ///
@@ -213,6 +213,21 @@ impl<Attr: Sized> SliceBase<Attr> {
     }
 }
 
+///
+/// Traits implementation
+///
+
+impl<Attr: Sized + 'static> Default for SliceBase<Attr> {
+    fn default() -> Self {
+        Self {
+            start: null(),
+            end: null(),
+            stride: 0,
+            _phantom: PhantomData,
+        }
+    }
+}
+
 /// Implement [`Iterator`] and related traits for [`SliceIterator`]/[`SliceIteratorMut`].
 macro_rules! impl_iterator {
     ($name: ident -> $elem: ty) => {
@@ -230,6 +245,18 @@ macro_rules! impl_iterator {
                     self.start = self.start.add(self.stride);
                     ret
                 }
+            }
+
+            fn nth(&mut self, i: usize) -> Option<$elem> {
+                self.start = unsafe { self.start.add(i * self.stride) };
+                if self.start >= self.end {
+                    return None;
+                }
+                let ret = unsafe {
+                    // Using `transmute` here because `self.start` is always a pointer.
+                    Some(std::mem::transmute::<_, $elem>(self.start))
+                };
+                ret
             }
         }
 

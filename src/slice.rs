@@ -166,9 +166,30 @@ impl<'a, Attr: Pod> From<&'a [Attr]> for Slice<'a, Attr> {
     }
 }
 
+impl<'a, Attr: Pod> From<&'a Vec<Attr>> for Slice<'a, Attr> {
+    fn from(item: &'a Vec<Attr>) -> Self {
+        Slice::native(item.as_slice())
+    }
+}
+
+impl<'a, Attr: Pod, const N: usize> From<&'a [Attr; N]> for Slice<'a, Attr> {
+    fn from(array: &'a [Attr; N]) -> Self {
+        Slice::native(array)
+    }
+}
+
 impl<'a, T: Pod + Debug> std::fmt::Debug for Slice<'a, T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_list().entries(self.iter()).finish()
+    }
+}
+
+impl<'a, Attr: Pod> Default for Slice<'a, Attr> {
+    fn default() -> Self {
+        Self {
+            inner: Default::default(),
+            _phantom: Default::default(),
+        }
     }
 }
 
