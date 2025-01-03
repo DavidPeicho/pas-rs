@@ -102,6 +102,15 @@ macro_rules! tests {
             assert_eq!(*iter.next().unwrap(), [8, 9]);
             assert_eq!(*iter.next().unwrap(), [13, 14]);
             assert_eq!(iter.next(), None);
+
+            // nth
+            let mut iter = slice.iter();
+            assert_eq!(iter.nth(4), None);
+            let mut iter = slice.iter();
+            assert_eq!(iter.nth(0), Some([3, 4].$borrow()));
+            assert_eq!(iter.nth(0), Some([3, 4].$borrow()));
+            assert_eq!(iter.nth(2), Some([13, 14].$borrow()));
+            assert_eq!(iter.nth(0), Some([13, 14].$borrow()));
         }
 
         #[test]
